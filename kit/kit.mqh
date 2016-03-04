@@ -1,3 +1,5 @@
+#include <MTDinc.mqh>
+
 bool IsDoubleClick(const int id,         
                   const long& lparam,   
                   const double& dparam, 
@@ -20,10 +22,15 @@ bool IsDoubleClick(const int id,
     }
 }
 
-void DrawLine(string name, datetime x1, double y1, datetime x2, double y2, int clr = clrBlue, int width = 2)
+void line(string name, datetime x1, double y1, datetime x2, double y2, int clr = clrBlue, int width = 2)
 {
     ObjectCreate(name, OBJ_TREND, 0, x1, y1, x2, y2);
     ObjectSet(name, OBJPROP_RAY, false);
     ObjectSetInteger(0, name, OBJPROP_COLOR, clr);
     ObjectSetInteger(0, name, OBJPROP_WIDTH, width);
+}
+
+void label(string name, string text, int row, int corner = 0, int clr = Lime)
+{
+    MTDlabel(name, text, clr, 20, 10, 30 * row + 10, corner);
 }
