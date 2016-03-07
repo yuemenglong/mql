@@ -57,15 +57,12 @@ void OnChartEvent(const int id,
 	datetime time = mouse_time();
 	double price = mouse_price();
 	log(str(price));
-	log("T");
 	if(trend_stop_price == 0){
-		log("1");
 		trend_stop_price = price;
 		ObjectCreate(0, "TREND_LINE_STOP", OBJ_HLINE, 0, Time[0], trend_stop_price);
 		ObjectSetInteger(0, "TREND_LINE_STOP", OBJPROP_COLOR, clrRed);
 	}
 	else{
-		log("2");
 		log("Send Trend Order");
 		double stop_loss = MathAbs(price - trend_stop_price);
 		double volumn = MTDAccountBalance() * ratio / (stop_loss * 100000);
