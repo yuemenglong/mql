@@ -1,6 +1,6 @@
 #include "log.mqh";
 
-#define SIZE 128
+#define ARRAY_SIZE 128
 
 #define ARRAY(T, name) \
 class ARRAY_##T##_##name \
@@ -9,7 +9,7 @@ private: \
 	int _head; \
 	int _tail; \
 	int _capacity; \
-	T _arr[SIZE]; \
+	T _arr[ARRAY_SIZE]; \
 public: \
 	ARRAY_##T##_##name(); \
 	int size(); \
@@ -19,9 +19,9 @@ public: \
 	void remove(int idx, int count = 1); \
 }; \
 ARRAY_##T##_##name::ARRAY_##T##_##name(){ \
-	_head = SIZE / 2; \
-	_tail = SIZE / 2 + 1; \
-	_capacity = SIZE; \
+	_head = ARRAY_SIZE / 4; \
+	_tail = ARRAY_SIZE / 4 + 1; \
+	_capacity = ARRAY_SIZE; \
 } \
 int ARRAY_##T##_##name::size(){ \
 	return _tail - _head - 1; \
