@@ -65,3 +65,7 @@ void label(string name, string text, int row, int corner = 0, int clr = Lime)
 {
 	MTDlabel(name, text, clr, 20, 10, 30 * row + 10, corner);
 }
+
+double normalise(double price){
+	return (int)(price * 100000) / 100000.0;
+}
