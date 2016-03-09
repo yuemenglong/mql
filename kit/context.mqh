@@ -1,13 +1,14 @@
 #include <MTDinc.mqh>
 #include "./log.mqh"
 
-class ContextBase 
+class Context 
 {
 private:
 	string _name;
 public:
-	ContextBase(string name = "Context Base");
+	Context(string name = "Context Base");
 	void set_name(string name);
+	string get_name();
 
 	int get_width();
 	int get_height();
@@ -16,19 +17,21 @@ public:
 	int get_x(datetime time);
 	int get_y(double price);
 
+	void enable_mouse_move();
+
 	virtual void on_click(int x, int y);
 	virtual void on_double_click(int x, int y);
 	virtual void on_key_down(int key);
 	virtual void on_mouse_move(int x, int y);
 
-	virtual int init();
-	virtual int deinit();
-	virtual int start();
+	virtual void init();
+	virtual void deinit();
+	virtual void start();
 };
 
-ContextBase* _context = NULL;
+Context* _context = NULL;
 
-ContextBase* context(){
+Context* context(){
 	return _context;
 }
 
@@ -37,16 +40,21 @@ int init() \
 { \
 	_context = new T(); \
 	_context.set_name(#T); \
+	log(_context.get_name(), "Init"); \
 	_context.init(); \
 	return 0; \
 } \
 
-void ContextBase::ContextBase(string name){
+void Context::Context(string name){
 	_name = name;
 }
 
-void ContextBase::set_name(string name){
+void Context::set_name(string name){
 	_name = name;
+}
+
+string Context::get_name(){
+	return _name;
 }
 
 int start()
@@ -57,6 +65,7 @@ int start()
 
 int deinit()
 {
+	log(_context.get_name(), "Deinit");
 	_context.deinit();
 	return 0;
 }
@@ -93,47 +102,46 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
 	}
 }
 
-int ContextBase::init(){
-	log(_name, "Init");
-	return 0;
+void Context::init(){
 }
 
-int ContextBase::deinit(){
-	log(_name, "Deinit");
-	return 0;
+void Context::deinit(){
 }
 
-int ContextBase::start(){
-	return 0;
+void Context::start(){
 }
 
-int ContextBase::get_width(){
+void Context::enable_mouse_move(){
+	ChartSetInteger(0, CHART_EVENT_MOUSE_MOVE, 0, true);
+}
+
+int Context::get_width(){
 	int width = (int)ChartGetInteger(0, CHART_WIDTH_IN_PIXELS, 0);
 	return width;
 }
 
-int ContextBase::get_height(){
+int Context::get_height(){
 	int height = (int)ChartGetInteger(0, CHART_HEIGHT_IN_PIXELS, 0);
 	return height;
 }
 
-void ContextBase::on_click(int x, int y){
+void Context::on_click(int x, int y){
 	return;
 }
 
-void ContextBase::on_double_click(int x, int y){
+void Context::on_double_click(int x, int y){
 	return;
 }
 
-void ContextBase::on_key_down(int key){
+void Context::on_key_down(int key){
 	return;
 }
 
-void ContextBase::on_mouse_move(int x, int y){
+void Context::on_mouse_move(int x, int y){
 	return;
 }
 
-datetime ContextBase::get_time(int x){
+datetime Context::get_time(int x){
 	datetime time;
 	double price;
 	int sub_window;
@@ -141,7 +149,7 @@ datetime ContextBase::get_time(int x){
 	return time;
 }
 
-double ContextBase::get_price(int y){
+double Context::get_price(int y){
 	datetime time;
 	double price;
 	int sub_window;
@@ -149,14 +157,14 @@ double ContextBase::get_price(int y){
 	return price;
 }
 
-int ContextBase::get_x(datetime time){
+int Context::get_x(datetime time){
 	int sub_window = 0;
 	int x, y;
 	ChartTimePriceToXY(0, sub_window, time, Close[0], x, y);
 	return x;
 }
 
-int ContextBase::get_y(double price){
+int Context::get_y(double price){
 	int sub_window = 0;
 	int x, y;
 	ChartTimePriceToXY(0, sub_window, Time[0], price, x, y);

@@ -8,8 +8,7 @@ private:
 	double _open_price;
 	double _close_price;
 public:
-	Line(string id) : View(id){
-	}
+	Line(string id) : View(id){}
 	void set_from(datetime time, double price){
 		_start_time = time;
 		_open_price = price;
@@ -32,7 +31,8 @@ class HLine : public View
 private:
 	double _price;
 public:
-	HLine(string id, double price) : View(id){
+	HLine(string id) : View(id){}
+	void set_price(double price){
 		_price = price;
 	}
 	virtual void show(){
@@ -48,12 +48,13 @@ class VLine : public View
 private:
 	datetime _time;
 public:
-	VLine(string id, datetime time) : View(id){
+	VLine(string id) : View(id){}
+	void set_time(datetime time){
 		_time = time;
 	}
 	virtual void show(){
 		hide();
-		ObjectCreate(_id, OBJ_VLINE, 0, time, 0);
+		ObjectCreate(_id, OBJ_VLINE, 0, _time, 0);
 		ObjectSetInteger(0, _id, OBJPROP_COLOR, _color);
 		ObjectSetInteger(0, _id, OBJPROP_WIDTH, _width);
 	}

@@ -7,31 +7,38 @@
 #include <MTDinc.mqh>
 #include "kit/kit.mqh";
 #include "kit/log.mqh";
-#include "kit/label.mqh";
 #include "kit/context.mqh";
-#include "kit/array.mqh";
+#include "std/file.mqh";
+#include "std/array.mqh";
 
-ARRAY(int, arr);
+ARRAY_DEFINE(int, INT_ARRAY);
 
-
-class Trace : public ContextBase
+class Trace : public Context
 {
 public:
-	virtual int start();
-};
-
-int Trace::start(){
-	if(arr.size() < 5){
-		arr.push_back(arr.size());
-	}
-	else{
-		arr.remove(0, 2);
-		for(int i = 0; i < arr.size(); i++){
-			log(str(arr[i]));
+	virtual void init(){
+		INT_ARRAY arr;
+		File file("trade/sdpzqs/2011.csv");
+		for(int i = 0; i < 50; i++){
+			string ret = file.read_string();
+			if(StringLen(ret) == 0){
+				break;
+			}
+			string spl[20];
+			StringSplit(ret, ',', spl);
+			for(int j = 0; j < ArraySize(spl); j++){
+				log(spl[j]);
+			}
 		}
+		file.close();
 	}
-	return 0;
-}
+	virtual void start(){
+		ObjectCreate("ARROR",OBJ_ARROW,0,Time[0],Close[0]);
+	}
+	virtual void deinit(){
+		ObjectDelete("ARROR");
+	}
+};
 
 setup(Trace);
 

@@ -12,6 +12,7 @@ private:
 public:
 	Label(string id, string text = "");
 	void set_xy(int x, int y);
+	void set_row(int row);
 	void set_corner(int corner);
 	void set_text(string text);
 
@@ -27,10 +28,15 @@ Label::Label(string id, string text)
 	_corner = 0;
 }
 
-void Label::set_xy(int x, int y)
+void Label::set_xy(int x, int y = 0)
 {
 	_x = x;
 	_y = y;
+}
+
+void Label::set_row(int row)
+{
+	_y = (int)(_size * row * 1.5);
 }
 
 void Label::set_corner(int corner)

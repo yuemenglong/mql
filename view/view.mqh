@@ -17,7 +17,7 @@ public:
 
 View::View(string id){
 	_id = id;
-	_size = 10;
+	_size = 15;
 	_width = 1;
 	_color = Lime;
 }
