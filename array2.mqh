@@ -63,7 +63,7 @@ void NAME::push_back(T& t[]){ \
 } \
 T NAME::pop_back(){ \
 	if(size() == 0){ \
-		return T(); \
+		return _arr[0]; \
 	} \
 	_tail--; \
 	fix(); \
@@ -79,7 +79,7 @@ void NAME::push_front(T t){ \
 } \
 T NAME::pop_front(){ \
 	if(size() == 0){ \
-		return T(); \
+		return _arr[0]; \	
 	} \
 	_head++; \
 	fix(); \
@@ -126,3 +126,7 @@ void NAME::resize(){ \
 	_tail = _head + size() + 1; \
 	_capacity *= 2; \
 } \
+
+
+ARRAY_DEFINE(int, INT_ARRAY);
+ARRAY_DEFINE(string, STR_ARRAY);
