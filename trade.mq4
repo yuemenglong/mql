@@ -36,6 +36,8 @@ struct line_list_t
 	int len;
 };
 
+ARRAY_DEFINE(trade_t, TRADE_ARRAY);
+
 class Trade : public Context
 {
 public:
