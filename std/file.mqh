@@ -7,7 +7,7 @@ private:
 	int _fd;
 	STR_ARRAY _cache;
 public:
-	File(string path, int flag = FILE_CSV){
+	File(string path, int flag = FILE_CSV | FILE_READ | FILE_SHARE_READ){
 		_fd = FileOpen(path, flag);
 		if(_fd == INVALID_HANDLE){
 			log("Open File Fail", path);
@@ -30,9 +30,14 @@ public:
 			}
 			string items[];
 			StringSplit(line, ',', items);
-			_cache.push_back(items);
+			for(int i = 0; i < ArraySize(items); i++){
+				_cache.push_back();
+				array_back(_cache) = items[i];
+			}
 		}
-		return _cache.pop_front();
+		string ret = array_front(_cache);
+		_cache.pop_front();
+		return ret;
 	}
 	int read_integer(){
 		return (int)StringToInteger(read_string());

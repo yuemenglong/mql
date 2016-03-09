@@ -25,41 +25,34 @@ struct trade_t
 	string symbol, sl, tp, commission, swap, comment;
 };
 
-struct trade_list_t
-{
-	trade_t list[128];
-	int len;
-};
-
-struct line_list_t
-{
-	int len;
-};
-
 ARRAY_DEFINE(trade_t, TRADE_ARRAY);
+TRADE_ARRAY trade_array;
 
 class Trade : public Context
 {
 public:
 	virtual void init(){
-		trade_list_t trades;	
 		file.read_line();
 		file.read_line();
 		while(!file.reach_end()){
-			trades.list[trades.len].open_time = file.read_time();
-			trades.list[trades.len].type = file.read_string();
-			trades.list[trades.len].volumn = file.read_double();
-			trades.list[trades.len].symbol = file.read_string();
-			trades.list[trades.len].open_price = file.read_double();
-			trades.list[trades.len].sl = file.read_string();
-			trades.list[trades.len].tp = file.read_string();
-			trades.list[trades.len].close_time = file.read_time();
-			trades.list[trades.len].close_price = file.read_double();
-			trades.list[trades.len].commission = file.read_string();
-			trades.list[trades.len].swap = file.read_string();
-			trades.list[trades.len].profit = file.read_double();
-			trades.list[trades.len].comment = file.read_string();
-			trades.len++;
+			trade_array.push_back();
+			array_back(trade_array).open_time = file.read_time();
+			array_back(trade_array).type = file.read_string();
+			array_back(trade_array).volumn = file.read_double();
+			array_back(trade_array).symbol = file.read_string();
+			array_back(trade_array).open_price = file.read_double();
+			array_back(trade_array).sl = file.read_string();
+			array_back(trade_array).tp = file.read_string();
+			array_back(trade_array).close_time = file.read_time();
+			array_back(trade_array).close_price = file.read_double();
+			array_back(trade_array).commission = file.read_string();
+			array_back(trade_array).swap = file.read_string();
+			array_back(trade_array).profit = file.read_double();
+			array_back(trade_array).comment = file.read_string();
+		}
+		for(int i = 0; i < trade_array.size(); i++){
+			datetime open_time = array_get(trade_array, i).open_time;
+			log(str(open_time));
 		}
 	}
 	virtual void start(){

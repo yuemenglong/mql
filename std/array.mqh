@@ -7,7 +7,7 @@ struct NAME \
 	int _head; \
 	int _tail; \
 	int _capacity; \
-	T _arr[ARRAY_SIZE]; \
+	T _array[ARRAY_SIZE]; \
 	\
 	NAME(); \
 	void remove_head(int idx); \
@@ -17,14 +17,10 @@ struct NAME \
 	int capacity(); \
 	bool full(); \
 	int pos(int idx); \
-	void push_back(T t); \
-	void push_back(T& t[]); \
-	T pop_back(); \
-	void push_front(T t); \
-	T pop_front(); \
-	T operator [] (const int idx); \
-	void remove(int idx); \
-	void resize(); \
+	bool push_back(); \
+	bool pop_back(); \
+	bool push_front(); \
+	bool pop_front(); \
 }; \
 NAME::NAME(){ \
 	_capacity = ARRAY_SIZE; \
@@ -47,93 +43,48 @@ void NAME::fix(){ \
 	_head = (_capacity + _head) % _capacity; \
 	_tail = (_capacity + _tail) % _capacity; \
 } \
-void NAME::push_back(T t){ \
+bool NAME::push_back(){ \
 	if(full()){ \
-		resize(); \
+		return false; \
 	} \
-	_arr[_tail] = t; \
 	_tail++; \
 	fix(); \	
+	return true; \
 } \
-void NAME::push_back(T& t[]){ \
-	for(int i = 0; i < ArraySize(t); i++){ \
-		push_back(t[i]); \
-	} \
-} \
-T NAME::pop_back(){ \
+bool NAME::pop_back(){ \
 	if(size() == 0){ \
-		return _arr[0]; \
+		return false; \
 	} \
 	_tail--; \
 	fix(); \
-	return _arr[_tail]; \
+	return true; \
 } \
-void NAME::push_front(T t){ \
+bool NAME::push_front(){ \
 	if(full()){ \
-		resize(); \
+		return false; \
 	} \
-	_arr[_head] = t; \
 	_head--; \
 	fix(); \
+	return true; \
 } \
-T NAME::pop_front(){ \
+bool NAME::pop_front(){ \
 	if(size() == 0){ \
-		return _arr[0]; \	
+		return false; \	
 	} \
 	_head++; \
 	fix(); \
-	return _arr[_head]; \
-} \
-T NAME::operator[](int idx){ \
-	return _arr[pos(idx)]; \
-} \
-void NAME::remove(int idx){ \
-	int pos = pos(idx); \
-	if(_tail <= _head && pos < _tail){ \
-		remove_tail(idx); \
-	} else if(_tail <= _head && pos > _head){ \
-		remove_head(idx); \
-	} else if(pos < (_head + _tail) / 2){ \
-		remove_head(idx); \
-	} else{ \
-		remove_tail(idx); \
-	} \
-} \
-void NAME::remove_head(int idx){ \
-	int pos = pos(idx); \
-	for(int i = pos; i > _head + 1; i--){ \
-		_arr[i] = _arr[i - 1]; \
-	} \
-	_head++; \
-	fix(); \
-} \
-void NAME::remove_tail(int idx){ \
-	int pos = pos(idx); \
-	for(int i = pos; i < _tail - 1; i++){ \
-		_arr[i] = _arr[i + 1]; \
-	} \
-	_tail--; \
-	fix(); \
-} \
-void NAME::resize(){ \
-	int ret = ArrayResize(_arr, _capacity * 2); \
-	log("resize", str(ret)); \
-	if(_tail > _head){ \
-		return; \
-	} \
-	ArrayCopy(_arr, _arr, _capacity, 0, _tail); \
-	_tail = _head + size() + 1; \
-	_capacity *= 2; \
+	return true; \
 } \
 
-#define front(array) \
-(array._arr[array.pos(0)])
+#define array_front(array) \
+(array._array[array.pos(0)])
 
-#define back(array) \
-(array.arr[array.pos(array.size() - 1)])
+#define array_back(array) \
+(array._array[array.pos(array.size() - 1)])
 
-#define mid(array, idx) \
-(array.arr[array.pos(idx)])
+#define array_get(array, idx) \
+(array._array[array.pos(idx)])
+
 
 ARRAY_DEFINE(int, INT_ARRAY);
 ARRAY_DEFINE(string, STR_ARRAY);
