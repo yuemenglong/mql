@@ -85,6 +85,17 @@ bool NAME::pop_front(){ \
 #define array_get(array, idx) \
 (array._array[array.pos(idx)])
 
+#define iter(array) \
+(array._array[array.pos(__IDX)])
+
+#define array_each(array) \
+for(int __IDX = 0; __IDX < array.size(); __IDX++)
+
+#define array_push(array) \
+for(int __IDX = array.size(), __ONCE = 1; \
+	__ONCE && array.push_back(); \
+	__ONCE--)
+
 
 ARRAY_DEFINE(int, INT_ARRAY);
 ARRAY_DEFINE(string, STR_ARRAY);

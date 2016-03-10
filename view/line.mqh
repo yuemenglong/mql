@@ -1,6 +1,24 @@
 #include "view.mqh"
 
-class Line : public View
+class LineBase : public View
+{
+protected:
+	int _width;
+	int _style;
+public:
+	void LineBase(string id) : View(id){
+		_width = 1;
+		_style = STYLE_SOLID;
+	}
+	void set_width(int width){
+		_width = width;
+	}
+	void set_style(int style){
+		_style = style;
+	}
+};
+
+class Line : public LineBase
 {
 private:
 	datetime _start_time;
@@ -8,7 +26,7 @@ private:
 	double _open_price;
 	double _close_price;
 public:
-	Line(string id) : View(id){}
+	Line(string id = "") : LineBase(id){}
 	void set_from(datetime time, double price){
 		_start_time = time;
 		_open_price = price;
@@ -23,15 +41,16 @@ public:
 		ObjectSet(_id, OBJPROP_RAY, false);
 		ObjectSetInteger(0, _id, OBJPROP_COLOR, _color);
 		ObjectSetInteger(0, _id, OBJPROP_WIDTH, _width);
+		ObjectSetInteger(0, _id, OBJPROP_STYLE, _style);
 	}
 };
 
-class HLine : public View
+class HLine : public LineBase
 {
 private:
 	double _price;
 public:
-	HLine(string id) : View(id){}
+	HLine(string id = "") : LineBase(id){}
 	void set_price(double price){
 		_price = price;
 	}
@@ -40,15 +59,16 @@ public:
 		ObjectCreate(_id, OBJ_HLINE, 0, 0, _price);
 		ObjectSetInteger(0, _id, OBJPROP_COLOR, _color);
 		ObjectSetInteger(0, _id, OBJPROP_WIDTH, _width);
+		ObjectSetInteger(0, _id, OBJPROP_STYLE, _style);
 	}
 };
 
-class VLine : public View
+class VLine : public LineBase
 {
 private:
 	datetime _time;
 public:
-	VLine(string id) : View(id){}
+	VLine(string id = "") : LineBase(id){}
 	void set_time(datetime time){
 		_time = time;
 	}
@@ -57,5 +77,6 @@ public:
 		ObjectCreate(_id, OBJ_VLINE, 0, _time, 0);
 		ObjectSetInteger(0, _id, OBJPROP_COLOR, _color);
 		ObjectSetInteger(0, _id, OBJPROP_WIDTH, _width);
+		ObjectSetInteger(0, _id, OBJPROP_STYLE, _style);
 	}
 };

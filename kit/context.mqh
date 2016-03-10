@@ -10,12 +10,12 @@ public:
 	void set_name(string name);
 	string get_name();
 
-	int get_width();
-	int get_height();
-	datetime get_time(int x);
-	double get_price(int y);
-	int get_x(datetime time);
-	int get_y(double price);
+	static int get_width();
+	static int get_height();
+	static datetime get_time(int x);
+	static double get_price(int y);
+	static int get_x(datetime time);
+	static int get_y(double price);
 
 	void enable_mouse_move();
 
