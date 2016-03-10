@@ -19,13 +19,13 @@ struct trade_data_t
 	double account;
 
 	Line line;
-	Label open_label;
-	Label close_label;
+	Text open_label;
+	Text close_label;
 };
 
 ARRAY_DEFINE(trade_data_t, TRADE_ARRAY);
 
-void get_trade_from_csv(string path, int clr, int idx, TRADE_ARRAY& array){
+void get_trade_from_csv(string path, int clr, TRADE_ARRAY& array){
 	File file(path);
 	file.read_line();
 	file.read_line();
@@ -61,12 +61,10 @@ void get_trade_from_csv(string path, int clr, int idx, TRADE_ARRAY& array){
 			iter(array).close_label.set_id("TRADE_CLOSE_LABEL_" + str(iter(array).open_time) + str(clr));
 			iter(array).open_label.set_color(clr);
 			iter(array).close_label.set_color(clr);
-			iter(array).open_label.set_corner(CORNER_LEFT_UPPER);
-			iter(array).close_label.set_corner(CORNER_LEFT_LOWER);
-			iter(array).open_label.set_anchor(ANCHOR_UPPER);
-			iter(array).close_label.set_anchor(ANCHOR_LOWER);
-			iter(array).open_label.set_row(idx);
-			iter(array).close_label.set_row(idx);
+			iter(array).open_label.set_time(iter(array).open_time);
+			iter(array).open_label.set_price(iter(array).open_price + 0.01);
+			iter(array).close_label.set_time(iter(array).close_time);
+			iter(array).close_label.set_price(iter(array).close_price - 0.01);
 
 			iter(array).open_label.set_text(DoubleToString(iter(array).volumn, 2));
 			iter(array).close_label.set_text(DoubleToString(iter(array).profit, 2));
@@ -82,8 +80,8 @@ class TradeTracer
 private:
 	TRADE_ARRAY _trade_array;
 public:
-	TradeTracer(string path, int clr, int idx){
-		get_trade_from_csv(path, clr, idx, _trade_array);
+	TradeTracer(string path, int clr){
+		get_trade_from_csv(path, clr, _trade_array);
 	}
 	void show_line(){
 		array_each(_trade_array){
@@ -92,11 +90,7 @@ public:
 	}
 	void show_detail(){
 		array_each(_trade_array){
-			int ox = Context::get_x(iter(_trade_array).open_time);
-			int cx = Context::get_x(iter(_trade_array).close_time);
-			iter(_trade_array).open_label.set_xy(ox);
 			iter(_trade_array).open_label.show();
-			iter(_trade_array).close_label.set_xy(cx);
 			iter(_trade_array).close_label.show();
 		}
 	}

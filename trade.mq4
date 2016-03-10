@@ -11,16 +11,14 @@
 #include "std/array.mqh";
 #include "busi/trade_tracer.mqh";
 
-TradeTracer t1("trade/sdpzqs/2011.csv", clrLime, 0);
+TradeTracer t1("trade/sdpzqs/2011.csv", clrLime);
 
 class Trade : public Context
 {
 public:
 	virtual void init(){
 		t1.show_line();
-	}
-	virtual void start(){
-	   t1.show_detail();
+		t1.show_detail();
 	}
 	virtual void deinit(){
 		t1.hide();
