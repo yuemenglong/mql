@@ -34,6 +34,7 @@ public:
 	void _on_init();
 	void _on_start();
 	void _on_deinit();
+	void _on_chart_event(const int id, const long& lparam, const double& dparam, const string& sparam);
 };
 
 void Context::Context(string name){
@@ -68,6 +69,21 @@ void Context::_on_deinit(){
 	deinit();
 }
 
+void Context::_on_chart_event(const int id, const long& lparam, const double& dparam, const string& sparam){
+	if(is_double_click(id, lparam,dparam,sparam)){
+		on_double_click((int)lparam, (int)dparam);
+	}
+	if(id == CHARTEVENT_CLICK){
+		on_click((int)lparam, (int)dparam);
+	}
+	if(id == CHARTEVENT_KEYDOWN){
+		on_key_down((int)lparam);
+	}
+	if(id == CHARTEVENT_MOUSE_MOVE){
+		on_mouse_move((int)lparam, (int)dparam);
+	}
+}
+
 #define setup(T) \
 Context* _context = NULL; \
 int init() \
@@ -87,6 +103,9 @@ int deinit() \
 	_context._on_deinit(); \
 	return 0; \
 } \
+void OnChartEvent(const int id, const long& lparam, const double& dparam, const string& sparam){ \
+	_context._on_chart_event(id, lparam, dparam, sparam); \
+} \
 
 bool is_double_click(const int id, const long& lparam, const double& dparam, const string& sparam){
 	static uint _last_click = 0;
@@ -102,21 +121,6 @@ bool is_double_click(const int id, const long& lparam, const double& dparam, con
 	}
 	else{
 		return false;
-	}
-}
-
-void OnChartEvent(const int id, const long& lparam, const double& dparam, const string& sparam){
-	if(is_double_click(id, lparam,dparam,sparam)){
-		_context.on_double_click((int)lparam, (int)dparam);
-	}
-	if(id == CHARTEVENT_CLICK){
-		_context.on_click((int)lparam, (int)dparam);
-	}
-	if(id == CHARTEVENT_KEYDOWN){
-		_context.on_key_down((int)lparam);
-	}
-	if(id == CHARTEVENT_MOUSE_MOVE){
-		_context.on_mouse_move((int)lparam, (int)dparam);
 	}
 }
 

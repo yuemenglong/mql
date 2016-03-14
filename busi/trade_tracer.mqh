@@ -62,9 +62,9 @@ void get_trade_from_csv(string path, int clr, TRADE_ARRAY& array){
 			iter(array).open_label.set_color(clr);
 			iter(array).close_label.set_color(clr);
 			iter(array).open_label.set_time(iter(array).open_time);
-			iter(array).open_label.set_price(iter(array).open_price + 0.01);
+			iter(array).open_label.set_price(iter(array).open_price + 0.005);
 			iter(array).close_label.set_time(iter(array).close_time);
-			iter(array).close_label.set_price(iter(array).close_price - 0.01);
+			iter(array).close_label.set_price(iter(array).close_price - 0.005);
 
 			iter(array).open_label.set_text(DoubleToString(iter(array).volumn, 2));
 			iter(array).close_label.set_text(DoubleToString(iter(array).profit, 2));
@@ -82,6 +82,10 @@ private:
 public:
 	TradeTracer(string path, int clr){
 		get_trade_from_csv(path, clr, _trade_array);
+	}
+	void show(){
+		show_line();
+		show_detail();
 	}
 	void show_line(){
 		array_each(_trade_array){
