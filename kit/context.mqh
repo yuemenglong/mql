@@ -5,6 +5,7 @@ class Context
 {
 private:
 	string _name;
+	datetime _last_time;
 public:
 	Context(string name = "Context Base");
 	void set_name(string name);
@@ -23,27 +24,17 @@ public:
 	virtual void on_double_click(int x, int y);
 	virtual void on_key_down(int key);
 	virtual void on_mouse_move(int x, int y);
+	virtual void on_new_bar();
+	virtual void on_new_price();
 
 	virtual void init();
 	virtual void deinit();
 	virtual void start();
+
+	void _on_init();
+	void _on_start();
+	void _on_deinit();
 };
-
-Context* _context = NULL;
-
-Context* context(){
-	return _context;
-}
-
-#define setup(T) \
-int init() \
-{ \
-	_context = new T(); \
-	_context.set_name(#T); \
-	log(_context.get_name(), "Init"); \
-	_context.init(); \
-	return 0; \
-} \
 
 void Context::Context(string name){
 	_name = name;
@@ -57,18 +48,45 @@ string Context::get_name(){
 	return _name;
 }
 
-int start()
-{
-	_context.start();
-	return 0;
+void Context::_on_init(){
+	log(get_name(), "Init");
+	init();
 }
 
-int deinit()
-{
-	log(_context.get_name(), "Deinit");
-	_context.deinit();
-	return 0;
+void Context::_on_start(){
+	if(Time[0] == _last_time){
+		on_new_price();
+	}else{
+		_last_time = Time[0];
+		on_new_bar();
+	}
+	start();
 }
+
+void Context::_on_deinit(){
+	log(get_name(), "Deinit");
+	deinit();
+}
+
+#define setup(T) \
+Context* _context = NULL; \
+int init() \
+{ \
+	_context = new T(); \
+	_context.set_name(#T); \
+	_context._on_init(); \
+	return 0; \
+} \
+int start() \
+{ \
+	_context._on_start(); \
+	return 0; \
+} \
+int deinit() \
+{ \
+	_context._on_deinit(); \
+	return 0; \
+} \
 
 bool is_double_click(const int id, const long& lparam, const double& dparam, const string& sparam){
 	static uint _last_click = 0;
@@ -138,6 +156,14 @@ void Context::on_key_down(int key){
 }
 
 void Context::on_mouse_move(int x, int y){
+	return;
+}
+
+void Context::on_new_bar(){
+	return;
+}
+
+void Context::on_new_price(){
 	return;
 }
 
