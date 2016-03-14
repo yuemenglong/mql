@@ -1,4 +1,13 @@
 #include "../kit/log.mqh";
+
+class ArrayItem
+{
+public:
+	virtual bool operator ==(ArrayItem& t){
+		return false;
+	}
+};
+
 #define ARRAY_SIZE 512
 
 #define ARRAY_DEFINE(T, NAME) \
@@ -12,6 +21,7 @@ struct NAME \
 	NAME(); \
 	void remove_head(int idx); \
 	void remove_tail(int idx); \
+	void remove(int idx); \
 	void fix(); \
 	int size(); \
 	int capacity(); \
@@ -21,6 +31,7 @@ struct NAME \
 	bool pop_back(); \
 	bool push_front(); \
 	bool pop_front(); \
+	int find(T& t, int from = 0); \
 }; \
 NAME::NAME(){ \
 	_capacity = ARRAY_SIZE; \
@@ -75,6 +86,41 @@ bool NAME::pop_front(){ \
 	fix(); \
 	return true; \
 } \
+int NAME::find(T& t, int from){ \
+	for(int i = from; i < size(); i++){ \
+		if(_array[pos(i)] == t){ \
+			return i; \
+		} \
+	} \
+	return -1; \
+} \
+void NAME::remove_head(int idx){ \
+	T tmp[ARRAY_SIZE]; \
+	ArrayCopy(tmp, _array, 0, _head + 1, idx); \
+	ArrayCopy(_array, tmp, _head + 2, 0, idx); \
+	_head++; \
+	fix(); \
+} \
+void NAME::remove_tail(int idx){ \
+	T tmp[ARRAY_SIZE]; \
+	int pos = pos(idx); \
+	ArrayCopy(tmp, _array, 0, pos + 1, size() - idx - 1); \
+	ArrayCopy(_array, tmp, pos, 0, size() - idx - 1); \
+	_tail--; \
+	fix(); \
+} \
+void NAME::remove(int idx){ \
+	int pos = pos(idx); \
+	if(_tail <= _head && pos < _tail){ \
+		remove_tail(idx); \
+	} else if(_tail <= _head && pos > _head){ \
+		remove_head(idx); \
+	} else if(pos < (_head + _tail) / 2){ \
+		remove_head(idx); \
+	} else{ \
+		remove_tail(idx); \
+	} \
+} \
 
 #define array_front(array) \
 (array._array[array.pos(0)])
@@ -95,6 +141,17 @@ for(int __IDX = 0; __IDX < array.size(); __IDX++)
 for(int __IDX = array.size(), __ONCE = 1; \
 	__ONCE && array.push_back(); \
 	__ONCE--)
+
+#define array_pop(array) \
+do{array.pop_back();}while(0)
+
+#define array_shift(array) \
+for(int __IDX = 0, __ONCE = 1; \
+	__ONCE && array.push_front(); \
+	__ONCE--)
+
+#define array_unshift(array) \
+do{array.pop_front();}while(0)	
 
 
 ARRAY_DEFINE(int, INT_ARRAY);

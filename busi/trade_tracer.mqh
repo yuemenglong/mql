@@ -4,9 +4,11 @@
 #include "../view/label.mqh";
 #include "../kit/context.mqh";
 #include "../kit/kit.mqh";
+#include "../std/array.mqh";
 
-struct trade_data_t
+class trade_data_t : public ArrayItem
 {
+public:
 	datetime open_time;
 	datetime close_time;
 	double open_price;
