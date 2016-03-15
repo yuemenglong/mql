@@ -18,9 +18,8 @@ public:
 				iter(arr) = i;
 			}
 		}
+		arr.subi(3);
 		print(arr);
-		arr.sort();
-		print(arr);	
 	}	
 };
 

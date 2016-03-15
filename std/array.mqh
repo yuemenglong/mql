@@ -21,7 +21,9 @@ struct NAME \
 	NAME(); \
 	void remove_head(int idx); \
 	void remove_tail(int idx); \
-	void remove(int idx); \
+	bool remove(int idx); \
+	bool sub(T& t); \
+	bool subi(T t); \
 	void fix(); \
 	int size(); \
 	int capacity(); \
@@ -32,6 +34,7 @@ struct NAME \
 	bool push_front(); \
 	bool pop_front(); \
 	int find(T& t, int from = 0); \
+	int findi(T t, int from = 0); \
 	void sort(); \
 }; \
 NAME::NAME(){ \
@@ -49,7 +52,12 @@ int NAME::capacity(){ \
 	return _capacity; \
 } \
 int NAME::pos(int idx){ \
-	return (_head + 1 + idx) % _capacity; \
+	if(idx >= 0){ \
+		return (_head + 1 + idx) % _capacity; \
+	} \
+	else { \
+		return (_tail + idx + _capacity) % _capacity; \
+	} \
 } \
 void NAME::fix(){ \
 	_head = (_capacity + _head) % _capacity; \
@@ -95,6 +103,14 @@ int NAME::find(T& t, int from){ \
 	} \
 	return -1; \
 } \
+int NAME::findi(T t, int from){ \
+	for(int i = from; i < size(); i++){ \
+		if(_array[pos(i)] == t){ \
+			return i; \
+		} \
+	} \
+	return -1; \
+} \
 void NAME::remove_head(int idx){ \
 	T tmp[ARRAY_SIZE]; \
 	ArrayCopy(tmp, _array, 0, _head + 1, idx); \
@@ -110,7 +126,15 @@ void NAME::remove_tail(int idx){ \
 	_tail--; \
 	fix(); \
 } \
-void NAME::remove(int idx){ \
+bool NAME::remove(int idx){ \
+	if(idx >= size()){ \
+		return false; \
+	} \
+	if(idx == 0){ \
+		return pop_front(); \
+	} else if(idx == size() - 1){ \
+		return pop_back(); \
+	} \
 	int pos = pos(idx); \
 	if(_tail <= _head && pos < _tail){ \
 		remove_tail(idx); \
@@ -121,6 +145,23 @@ void NAME::remove(int idx){ \
 	} else{ \
 		remove_tail(idx); \
 	} \
+	return true; \
+} \
+bool NAME::sub(T& t){ \
+	int idx = find(t); \	
+	if(idx < 0){ \
+		return false; \
+	} \
+	remove(idx); \
+	return true; \
+} \
+bool NAME::subi(T t){ \
+	int idx = findi(t); \	
+	if(idx < 0){ \
+		return false; \
+	} \
+	remove(idx); \
+	return true; \
 } \
 void NAME::sort(){ \
 	if(_head >= _tail){ \
