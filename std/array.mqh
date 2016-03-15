@@ -32,6 +32,7 @@ struct NAME \
 	bool push_front(); \
 	bool pop_front(); \
 	int find(T& t, int from = 0); \
+	void sort(); \
 }; \
 NAME::NAME(){ \
 	_capacity = ARRAY_SIZE; \
@@ -120,6 +121,18 @@ void NAME::remove(int idx){ \
 	} else{ \
 		remove_tail(idx); \
 	} \
+} \
+void NAME::sort(){ \
+	if(_head >= _tail){ \
+		T tmp[ARRAY_SIZE]; \
+		int size = size(); \
+		ArrayCopy(tmp, _array, 0, _head+1, ARRAY_SIZE-_head-1); \
+		ArrayCopy(tmp, _array, ARRAY_SIZE-_head-1, 0, _tail); \
+		ArrayCopy(_array, tmp, 1, 0, size); \
+		_head = 0; \
+		_tail = size + 1; \
+	} \
+	ArraySort(_array, size(), _head+1); \
 } \
 
 #define array_front(array) \
