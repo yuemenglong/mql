@@ -13,13 +13,13 @@ class Test : public Context
 	INT_ARRAY arr;
 public:
 	virtual void init(){
-		for(int i = 0; i < 3; i++){
+		for(int i = 1; i < 4; i++){
 			array_shift(arr){
 				iter(arr) = i;
 			}
 		}
 		print(arr);
-		array_unshift(arr);
+		arr.sort();
 		print(arr);	
 	}	
 };

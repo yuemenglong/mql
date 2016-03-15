@@ -168,4 +168,5 @@ do{array.pop_front();}while(0)
 
 
 ARRAY_DEFINE(int, INT_ARRAY);
+ARRAY_DEFINE(double, DOUBLE_ARRAY);
 ARRAY_DEFINE(string, STR_ARRAY);

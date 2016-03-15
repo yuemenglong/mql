@@ -88,6 +88,9 @@ void Context::_on_chart_event(const int id, const long& lparam, const double& dp
 
 #define setup(T) \
 Context* _context = NULL; \
+Context* context(){ \
+	return _context; \
+} \
 int init() \
 { \
 	_context = new T(); \
