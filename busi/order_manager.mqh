@@ -16,6 +16,11 @@ public:
 	void on_new_bar(){
 
 	}
+	void change_state(){
+		ORDER_ARRAY tmp;
+		list_current_orders(tmp);
+		tmp.del();
+	}
 	void list_current_orders(ORDER_ARRAY& array){
 		int total = MTDOrdersTotal();
 		for(int i = 0; i < total; i++)
@@ -23,13 +28,10 @@ public:
 			Order* order = new Order();
 			MTDOrderSelect(i, SELECT_BY_POS);
 			order._ticket = MTDOrderTicket();
-			order._pending_time = MTDOrderOpenTime();
-			order._open_price = MTDOrderOpenPrice();
-			order._volumn = MTDOrderLots();
 			array.push_back(order);
 		}
 	}
-	void panding(Order* order){
+	void pending(Order* order){
 		_pending_time.push_back(order);
 	}
 };
@@ -40,49 +42,52 @@ class Order : public ArrayItem
 {
 public:
 	int _ticket;
-	int _current_type;
+	int _pending_type;
+	datetime _pending_time;
 	double _open_price;
 	double _stop_loss;
 	double _volumn;
-	datetime _pending_time;
 
-   Order(){}
-	Order(int type, double volumn, double price, double stop_loss){
-		_current_type = type;
-		_volumn = volumn;
+	Order(){}
+	Order(int pending_type){
+		_pending_type = pending_type;
+	}
+	void set_open_price(double price){
 		_open_price = price;
+	}
+	void set_stop_loss(double stop_loss){
 		_stop_loss = stop_loss;
+	}
+	void set_volumn(double volumn){
+		_volumn = volumn;
+	}
+	void send(){
+		_ticket = MTDOrderSend(Symbol(), _pending_type, 
+			_volumn, _open_price, 0, _stop_loss);
 		_pending_time = Time[0];
+		orderManager.pending(this);
+		log(str(_ticket));
+		log(str(_pending_time));
 	}
 	int ticket(){
 		return _ticket;	
 	}
 	void select(){
-
-	}
-	int current_type(){
-		return _current_type;
+		MTDOrderSelect(SELECT_BY_TICKET, _ticket);
 	}
 	int order_type(){
-		if(_current_type == OP_BUY){
-			return OP_BUYSTOP;
-		}else if(_current_type == OP_SELL){
-			return OP_SELLSTOP;
-		}else{
-			return _current_type;
-		}
+		select();
+		return MTDOrderType();
 	}
 	double open_price(){
-		return _open_price;
+		select();
+		return MTDOrderOpenPrice();
 	}
 	double volumn(){
-		return _volumn;
+		select();
+		return MTDOrderLots();
 	}
-	void send(){
-		int ticket = MTDOrderSend(Symbol(), order_type(), 
-			_volumn, _open_price, 0, _stop_loss);
-		log(str(ticket));
-	}
+	
 	virtual bool eq(Order* order){
 		if(_ticket == order._ticket){
 			return true;
