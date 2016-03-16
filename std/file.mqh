@@ -31,12 +31,10 @@ public:
 			string items[];
 			StringSplit(line, ',', items);
 			for(int i = 0; i < ArraySize(items); i++){
-				_cache.push_back();
-				array_back(_cache) = items[i];
+				_cache.push_back(items[i]);
 			}
 		}
-		string ret = array_front(_cache);
-		_cache.pop_front();
+		string ret = _cache.pop_front();
 		return ret;
 	}
 	int read_integer(){

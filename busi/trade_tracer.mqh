@@ -33,45 +33,45 @@ void get_trade_from_csv(string path, int clr, TRADE_ARRAY& array){
 	file.read_line();
 	double account = 2000;
 	while(!file.reach_end()){
-		array_push(array){
-			iter(array).open_time = file.read_time();
-			iter(array).type = file.read_string();
-			iter(array).volumn = file.read_double();
-			iter(array).symbol = file.read_string();
-			iter(array).open_price = file.read_double();
-			iter(array).sl = file.read_string();
-			iter(array).tp = file.read_string();
-			iter(array).close_time = file.read_time();
-			iter(array).close_price = file.read_double();
-			iter(array).commission = file.read_string();
-			iter(array).swap = file.read_string();
-			iter(array).profit = file.read_double();
-			iter(array).comment = file.read_string();
+		trade_data_t* data = new trade_data_t();
+		data.open_time = file.read_time();
+		data.type = file.read_string();
+		data.volumn = file.read_double();
+		data.symbol = file.read_string();
+		data.open_price = file.read_double();
+		data.sl = file.read_string();
+		data.tp = file.read_string();
+		data.close_time = file.read_time();
+		data.close_price = file.read_double();
+		data.commission = file.read_string();
+		data.swap = file.read_string();
+		data.profit = file.read_double();
+		data.comment = file.read_string();
 
-			account += iter(array).profit;
-			iter(array).account = account;
+		account += data.profit;
+		data.account = account;
 
-			iter(array).line.set_id("TRADE_LINE_" + str(iter(array).open_time) + str(clr));
-			iter(array).line.set_from(iter(array).open_time, iter(array).open_price);
-			iter(array).line.set_to(iter(array).close_time, iter(array).close_price);
-			iter(array).line.set_color(clr);
-			if(iter(array).profit < 0){
-				iter(array).line.set_style(STYLE_DASHDOT);
-			}
-
-			iter(array).open_label.set_id("TRADE_OPEN_LABEL_" + str(iter(array).open_time) + str(clr));
-			iter(array).close_label.set_id("TRADE_CLOSE_LABEL_" + str(iter(array).open_time) + str(clr));
-			iter(array).open_label.set_color(clr);
-			iter(array).close_label.set_color(clr);
-			iter(array).open_label.set_time(iter(array).open_time);
-			iter(array).open_label.set_price(iter(array).open_price + 0.005);
-			iter(array).close_label.set_time(iter(array).close_time);
-			iter(array).close_label.set_price(iter(array).close_price - 0.005);
-
-			iter(array).open_label.set_text(DoubleToString(iter(array).volumn, 2));
-			iter(array).close_label.set_text(DoubleToString(iter(array).profit, 2));
-
+		data.line.set_id("TRADE_LINE_" + str(data.open_time) + str(clr));
+		data.line.set_from(data.open_time, data.open_price);
+		data.line.set_to(data.close_time, data.close_price);
+		data.line.set_color(clr);
+		if(data.profit < 0){
+			data.line.set_style(STYLE_DASHDOT);
 		}
+
+		data.open_label.set_id("TRADE_OPEN_LABEL_" + str(data.open_time) + str(clr));
+		data.close_label.set_id("TRADE_CLOSE_LABEL_" + str(data.open_time) + str(clr));
+		data.open_label.set_color(clr);
+		data.close_label.set_color(clr);
+		data.open_label.set_time(data.open_time);
+		data.open_label.set_price(data.open_price + 0.005);
+		data.close_label.set_time(data.close_time);
+		data.close_label.set_price(data.close_price - 0.005);
+
+		data.open_label.set_text(DoubleToString(data.volumn, 2));
+		data.close_label.set_text(DoubleToString(data.profit, 2));
+
+		array.push_back(data);
 	}	
 	file.close();
 }
@@ -90,21 +90,21 @@ public:
 		show_detail();
 	}
 	void show_line(){
-		array_each(_trade_array){
-			iter(_trade_array).line.show();
+		for(int i = 0; i < _trade_array.size(); i++){
+			_trade_array[i].line.show();
 		}
 	}
 	void show_detail(){
-		array_each(_trade_array){
-			iter(_trade_array).open_label.show();
-			iter(_trade_array).close_label.show();
+		for(int i = 0; i < _trade_array.size(); i++){
+			_trade_array[i].open_label.show();
+			_trade_array[i].close_label.show();
 		}
 	}
 	void hide(){
-		array_each(_trade_array){
-			iter(_trade_array).line.hide();
-			iter(_trade_array).open_label.hide();
-			iter(_trade_array).close_label.hide();
+		for(int i = 0; i < _trade_array.size(); i++){
+			_trade_array[i].line.hide();
+			_trade_array[i].open_label.hide();
+			_trade_array[i].close_label.hide();
 		}
 	}
 };

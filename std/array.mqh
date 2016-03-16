@@ -1,16 +1,8 @@
 #include "../kit/log.mqh";
 
-class ArrayItem
-{
-public:
-	virtual bool operator ==(ArrayItem& t){
-		return false;
-	}
-};
-
 #define ARRAY_SIZE 512
 
-#define ARRAY_DEFINE(T, NAME) \
+#define ARRAY_DEFINE_I(T, NAME) \
 struct NAME \
 { \
 	int _head; \
@@ -18,196 +10,292 @@ struct NAME \
 	int _capacity; \
 	T _array[ARRAY_SIZE]; \
 	\
-	NAME(); \
-	void remove_head(int idx); \
-	void remove_tail(int idx); \
-	bool remove(int idx); \
-	bool sub(T& t); \
-	bool subi(T t); \
-	void fix(); \
-	int size(); \
-	int capacity(); \
-	bool full(); \
-	int pos(int idx); \
-	bool push_back(); \
-	bool pop_back(); \
-	bool push_front(); \
-	bool pop_front(); \
-	int find(T& t, int from = 0); \
-	int findi(T t, int from = 0); \
-	void sort(); \
-}; \
-NAME::NAME(){ \
-	_capacity = ARRAY_SIZE; \
-	_head = 0; \
-	_tail = 1; \
-} \
-bool NAME::full(){ \
-	return size() == _capacity - 1; \
-} \
-int NAME::size(){ \
-	return (_capacity + _tail - _head - 1) % _capacity ; \
-} \
-int NAME::capacity(){ \
-	return _capacity; \
-} \
-int NAME::pos(int idx){ \
-	if(idx >= 0){ \
-		return (_head + 1 + idx) % _capacity; \
-	} \
-	else { \
-		return (_tail + idx + _capacity) % _capacity; \
-	} \
-} \
-void NAME::fix(){ \
-	_head = (_capacity + _head) % _capacity; \
-	_tail = (_capacity + _tail) % _capacity; \
-} \
-bool NAME::push_back(){ \
-	if(full()){ \
-		return false; \
-	} \
-	_tail++; \
-	fix(); \	
-	return true; \
-} \
-bool NAME::pop_back(){ \
-	if(size() == 0){ \
-		return false; \
-	} \
-	_tail--; \
-	fix(); \
-	return true; \
-} \
-bool NAME::push_front(){ \
-	if(full()){ \
-		return false; \
-	} \
-	_head--; \
-	fix(); \
-	return true; \
-} \
-bool NAME::pop_front(){ \
-	if(size() == 0){ \
-		return false; \	
-	} \
-	_head++; \
-	fix(); \
-	return true; \
-} \
-int NAME::find(T& t, int from){ \
-	for(int i = from; i < size(); i++){ \
-		if(_array[pos(i)] == t){ \
-			return i; \
-		} \
-	} \
-	return -1; \
-} \
-int NAME::findi(T t, int from){ \
-	for(int i = from; i < size(); i++){ \
-		if(_array[pos(i)] == t){ \
-			return i; \
-		} \
-	} \
-	return -1; \
-} \
-void NAME::remove_head(int idx){ \
-	T tmp[ARRAY_SIZE]; \
-	ArrayCopy(tmp, _array, 0, _head + 1, idx); \
-	ArrayCopy(_array, tmp, _head + 2, 0, idx); \
-	_head++; \
-	fix(); \
-} \
-void NAME::remove_tail(int idx){ \
-	T tmp[ARRAY_SIZE]; \
-	int pos = pos(idx); \
-	ArrayCopy(tmp, _array, 0, pos + 1, size() - idx - 1); \
-	ArrayCopy(_array, tmp, pos, 0, size() - idx - 1); \
-	_tail--; \
-	fix(); \
-} \
-bool NAME::remove(int idx){ \
-	if(idx >= size()){ \
-		return false; \
-	} \
-	if(idx == 0){ \
-		return pop_front(); \
-	} else if(idx == size() - 1){ \
-		return pop_back(); \
-	} \
-	int pos = pos(idx); \
-	if(_tail <= _head && pos < _tail){ \
-		remove_tail(idx); \
-	} else if(_tail <= _head && pos > _head){ \
-		remove_head(idx); \
-	} else if(pos < (_head + _tail) / 2){ \
-		remove_head(idx); \
-	} else{ \
-		remove_tail(idx); \
-	} \
-	return true; \
-} \
-bool NAME::sub(T& t){ \
-	int idx = find(t); \	
-	if(idx < 0){ \
-		return false; \
-	} \
-	remove(idx); \
-	return true; \
-} \
-bool NAME::subi(T t){ \
-	int idx = findi(t); \	
-	if(idx < 0){ \
-		return false; \
-	} \
-	remove(idx); \
-	return true; \
-} \
-void NAME::sort(){ \
-	if(_head >= _tail){ \
-		T tmp[ARRAY_SIZE]; \
-		int size = size(); \
-		ArrayCopy(tmp, _array, 0, _head+1, ARRAY_SIZE-_head-1); \
-		ArrayCopy(tmp, _array, ARRAY_SIZE-_head-1, 0, _tail); \
-		ArrayCopy(_array, tmp, 1, 0, size); \
+	NAME(){ \
+		_capacity = ARRAY_SIZE; \
 		_head = 0; \
-		_tail = size + 1; \
+		_tail = 1; \
 	} \
-	ArraySort(_array, size(), _head+1); \
-} \
+	bool full(){ \
+		return size() == _capacity - 1; \
+	} \
+	int size(){ \
+		return (_capacity + _tail - _head - 1) % _capacity ; \
+	} \
+	int capacity(){ \
+		return _capacity; \
+	} \
+	int pos(int idx){ \
+		if(idx >= 0){ \
+			return (_head + 1 + idx) % _capacity; \
+		} else { \
+			return (_tail + idx + _capacity) % _capacity; \
+		} \
+	} \
+	T operator[](int idx){ \
+		return _array[pos(idx)]; \
+	} \
+	void fix(){ \
+		_head = (_capacity + _head) % _capacity; \
+		_tail = (_capacity + _tail) % _capacity; \
+	} \
+	void push_back(T t){ \
+		if(full()){ \
+			return; \
+		} \
+		_array[_tail] = t; \
+		_tail++; \
+		fix(); \	
+		return; \
+	} \
+	T pop_back(){ \
+		if(size() == 0){ \
+			return _array[0]; \
+		} \
+		_tail--; \
+		fix(); \
+		return _array[_tail]; \
+	} \
+	void push_front(T t){ \
+		if(full()){ \
+			return; \
+		} \
+		_array[_head] = t; \
+		_head--; \
+		fix(); \
+		return; \
+	} \
+	T pop_front(){ \
+		if(size() == 0){ \
+			return _array[0]; \	
+		} \
+		_head++; \
+		fix(); \
+		return _array[_head]; \
+	} \
+	int find(T t, int from = 0){ \
+		for(int i = from; i < size(); i++){ \
+			if(_array[pos(i)] == t){ \
+				return i; \
+			} \
+		} \
+		return -1; \
+	} \
+	void remove_head(int idx){ \
+		T tmp[ARRAY_SIZE]; \
+		ArrayCopy(tmp, _array, 0, _head + 1, idx); \
+		ArrayCopy(_array, tmp, _head + 2, 0, idx); \
+		_head++; \
+		fix(); \
+	} \
+	void remove_tail(int idx){ \
+		T tmp[ARRAY_SIZE]; \
+		int pos = pos(idx); \
+		ArrayCopy(tmp, _array, 0, pos + 1, size() - idx - 1); \
+		ArrayCopy(_array, tmp, pos, 0, size() - idx - 1); \
+		_tail--; \
+		fix(); \
+	} \
+	void remove(int idx){ \
+		if(idx >= size()){ \
+			return; \
+		} \
+		if(idx == 0){ \
+			pop_front(); \
+			return; \
+		} else if(idx == size() - 1){ \
+			pop_back(); \
+			return; \
+		} \
+		int pos = pos(idx); \
+		if(_tail <= _head && pos < _tail){ \
+			remove_tail(idx); \
+		} else if(_tail <= _head && pos > _head){ \
+			remove_head(idx); \
+		} else if(pos < (_head + _tail) / 2){ \
+			remove_head(idx); \
+		} else{ \
+			remove_tail(idx); \
+		} \
+	} \
+	void sub(T t){ \
+		int idx = find(t); \	
+		if(idx < 0){ \
+			return; \
+		} \
+		remove(idx); \
+	} \
+	void sort(){ \
+		if(_head >= _tail){ \
+			T tmp[ARRAY_SIZE]; \
+			int size = size(); \
+			ArrayCopy(tmp, _array, 0, _head+1, ARRAY_SIZE-_head-1); \
+			ArrayCopy(tmp, _array, ARRAY_SIZE-_head-1, 0, _tail); \
+			ArrayCopy(_array, tmp, 1, 0, size); \
+			_head = 0; \
+			_tail = size + 1; \
+		} \
+		ArraySort(_array, size(), _head+1); \
+	} \
+}; \
 
-#define array_front(array) \
-(array._array[array.pos(0)])
+ARRAY_DEFINE_I(int, INT_ARRAY);
+ARRAY_DEFINE_I(double, DOUBLE_ARRAY);
+ARRAY_DEFINE_I(string, STR_ARRAY);
 
-#define array_back(array) \
-(array._array[array.pos(array.size() - 1)])
+class ArrayItem
+{
+public:
+	virtual bool eq(ArrayItem* other){
+		return false;
+	}
+};
 
-#define array_get(array, idx) \
-(array._array[array.pos(idx)])
-
-#define iter(array) \
-(array._array[array.pos(__IDX)])
-
-#define array_each(array) \
-for(int __IDX = 0; __IDX < array.size(); __IDX++)
-
-#define array_push(array) \
-for(int __IDX = array.size(), __ONCE = 1; \
-	__ONCE && array.push_back(); \
-	__ONCE--)
-
-#define array_pop(array) \
-do{array.pop_back();}while(0)
-
-#define array_shift(array) \
-for(int __IDX = 0, __ONCE = 1; \
-	__ONCE && array.push_front(); \
-	__ONCE--)
-
-#define array_unshift(array) \
-do{array.pop_front();}while(0)	
-
-
-ARRAY_DEFINE(int, INT_ARRAY);
-ARRAY_DEFINE(double, DOUBLE_ARRAY);
-ARRAY_DEFINE(string, STR_ARRAY);
+#define ARRAY_DEFINE(T, NAME) \
+struct NAME \
+{ \
+	int _head; \
+	int _tail; \
+	int _capacity; \
+	T* _array[ARRAY_SIZE]; \
+	\
+	NAME(){ \
+		_capacity = ARRAY_SIZE; \
+		reset(); \
+	} \
+	void reset(){ \
+		_head = 0; \
+		_tail = 1; \
+	} \
+	bool full(){ \
+		return size() == _capacity - 1; \
+	} \
+	int size(){ \
+		return (_capacity + _tail - _head - 1) % _capacity ; \
+	} \
+	int capacity(){ \
+		return _capacity; \
+	} \
+	int pos(int idx){ \
+		if(idx >= 0){ \
+			return (_head + 1 + idx) % _capacity; \
+		} else { \
+			return (_tail + idx + _capacity) % _capacity; \
+		} \
+	} \
+	T* operator[](int idx){ \
+		return _array[pos(idx)]; \
+	} \
+	void fix(){ \
+		_head = (_capacity + _head) % _capacity; \
+		_tail = (_capacity + _tail) % _capacity; \
+	} \
+	void push_back(T* t){ \
+		if(full()){ \
+			return; \
+		} \
+		_array[_tail] = t; \
+		_tail++; \
+		fix(); \	
+		return; \
+	} \
+	T* pop_back(){ \
+		if(size() == 0){ \
+			return _array[0]; \
+		} \
+		_tail--; \
+		fix(); \
+		return _array[_tail]; \
+	} \
+	void push_front(T* t){ \
+		if(full()){ \
+			return; \
+		} \
+		_array[_head] = t; \
+		_head--; \
+		fix(); \
+		return; \
+	} \
+	T* pop_front(){ \
+		if(size() == 0){ \
+			return _array[0]; \	
+		} \
+		_head++; \
+		fix(); \
+		return _array[_head]; \
+	} \
+	int find(T* t, int from = 0){ \
+		for(int i = from; i < size(); i++){ \
+			if(_array[pos(i)]==t || _array[pos(i)].eq(t)){ \
+				return i; \
+			} \
+		} \
+		return -1; \
+	} \
+	void remove_head(int idx){ \
+		T* tmp[ARRAY_SIZE]; \
+		ArrayCopy(tmp, _array, 0, _head + 1, idx); \
+		ArrayCopy(_array, tmp, _head + 2, 0, idx); \
+		_head++; \
+		fix(); \
+	} \
+	void remove_tail(int idx){ \
+		T* tmp[ARRAY_SIZE]; \
+		int pos = pos(idx); \
+		ArrayCopy(tmp, _array, 0, pos + 1, size() - idx - 1); \
+		ArrayCopy(_array, tmp, pos, 0, size() - idx - 1); \
+		_tail--; \
+		fix(); \
+	} \
+	void remove(int idx){ \
+		if(idx >= size()){ \
+			return; \
+		} \
+		if(idx == 0){ \
+			pop_front(); \
+			return; \
+		} else if(idx == size() - 1){ \
+			pop_back(); \
+			return; \
+		} \
+		int pos = pos(idx); \
+		if(_tail <= _head && pos < _tail){ \
+			remove_tail(idx); \
+		} else if(_tail <= _head && pos > _head){ \
+			remove_head(idx); \
+		} else if(pos < (_head + _tail) / 2){ \
+			remove_head(idx); \
+		} else{ \
+			remove_tail(idx); \
+		} \
+		return; \
+	} \
+	void remove(T* t){ \
+		int idx = find(t); \	
+		if(idx < 0){ \
+			return; \
+		} \
+		remove(idx); \
+	} \
+	void del(int idx){ \
+		delete _array[pos(idx)]; \
+		_array[pos(idx)] = NULL; \
+		remove(idx); \
+	} \
+	void del(T* t){ \
+		int idx = find(t); \	
+		if(idx < 0){ \
+			return; \
+		} \
+		del(idx); \
+	} \
+	void del(){ \
+		for(int i = 0; i < size(); i++){ \
+			delete _array[pos(i)]; \
+			_array[pos(i)] = NULL; \
+		} \
+		reset(); \
+	} \
+	void clear(){ \
+		reset(); \
+	} \
+}; \
