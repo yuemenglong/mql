@@ -2,12 +2,39 @@
 #include "../kit/log.mqh"
 #include "../std/array.mqh"
 #include "../std/file.mqh"
+#include "order_monitor.mqh"
+
+class Context;
+
+class ContextOrderEventListener : public OrderEventListener
+{
+	Context* _context;
+public:
+	ContextOrderEventListener(Context* context){
+		_context = context;
+	}
+	virtual void on_order_pending(Order* order){
+		_context.on_order_pending(order);
+	}
+	virtual void on_order_open(Order* order){
+		_context.on_order_open(order);
+	}
+	virtual void on_order_close(Order* order){
+		_context.on_order_close(order);
+	}
+	virtual void on_order_delete(Order* order){
+		_context.on_order_delete(order);
+	}
+};
 
 class Context 
 {
 private:
 	string _name;
 	datetime _last_time;
+	int _cursor_x;
+	int _curosr_y;
+	OrderEventListener* _listener;
 public:
 	Context(string name = "Context Base");
 	void set_name(string name);
@@ -21,6 +48,11 @@ public:
 	static int get_y(double price);
 
 	void enable_mouse_move();
+	int get_cursor_x();
+	int get_cursor_y();
+	datetime get_cursor_time();
+	double get_cursor_price();
+	void _on_mouse_move(int x, int y);
 
 	virtual void on_click(int x, int y);
 	virtual void on_double_click(int x, int y);
@@ -28,6 +60,12 @@ public:
 	virtual void on_mouse_move(int x, int y);
 	virtual void on_new_bar();
 	virtual void on_new_price();
+
+	void enable_order_event();
+	virtual void on_order_pending(Order* order);
+	virtual void on_order_open(Order* order);
+	virtual void on_order_close(Order* order);
+	virtual void on_order_delete(Order* order);
 
 	virtual void init();
 	virtual void deinit();
@@ -82,7 +120,7 @@ void Context::_on_chart_event(const int id, const long& lparam, const double& dp
 		on_key_down((int)lparam);
 	}
 	if(id == CHARTEVENT_MOUSE_MOVE){
-		on_mouse_move((int)lparam, (int)dparam);
+		_on_mouse_move((int)lparam, (int)dparam);
 	}
 }
 
@@ -142,6 +180,28 @@ void Context::enable_mouse_move(){
 	ChartSetInteger(0, CHART_EVENT_MOUSE_MOVE, 0, true);
 }
 
+void Context::_on_mouse_move(int x, int y){
+	_cursor_x = x;
+	_curosr_y = y;
+	on_mouse_move(x, y);
+}
+
+int Context::get_cursor_x(){
+	return _cursor_x;
+}
+
+int Context::get_cursor_y(){
+	return _curosr_y;
+}
+
+datetime Context::get_cursor_time(){
+	return get_time(_cursor_x);
+}
+
+double Context::get_cursor_price(){
+	return get_price(_curosr_y);
+}
+
 int Context::get_width(){
 	int width = (int)ChartGetInteger(0, CHART_WIDTH_IN_PIXELS, 0);
 	return width;
@@ -175,6 +235,25 @@ void Context::on_new_bar(){
 void Context::on_new_price(){
 	return;
 }
+
+void Context::enable_order_event(){
+	_listener = new ContextOrderEventListener(&this);
+	_order_manager.set_listener(_listener);
+}
+
+void Context::on_order_pending(Order* order){
+	return;	
+}
+void Context::on_order_open(Order* order){
+	return;	
+}
+void Context::on_order_close(Order* order){
+	return;	
+}
+void Context::on_order_delete(Order* order){
+	return;	
+}
+
 
 datetime Context::get_time(int x){
 	datetime time;
