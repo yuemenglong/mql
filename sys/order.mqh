@@ -66,7 +66,7 @@ public:
 		}
 		return MTDOrderOpenPrice();
 	}
-	double open_time(){
+	datetime open_time(){
 		if(!select() && !select_history()){
 			return -1;
 		}

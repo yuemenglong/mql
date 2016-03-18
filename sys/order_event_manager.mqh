@@ -3,7 +3,6 @@
 #include "../std/array.mqh"
 #include "order.mqh"
 
-class Order;
 ARRAY_DEFINE(Order, ORDER_ARRAY);
 
 class OrderEventListener

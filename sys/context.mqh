@@ -2,6 +2,7 @@
 #include "../kit/log.mqh"
 #include "../std/array.mqh"
 #include "../std/file.mqh"
+#include "static.mqh"
 #include "order_event_manager.mqh"
 
 class Context;
@@ -27,7 +28,7 @@ public:
 	}
 };
 
-class Context 
+class Context : public Static
 {
 private:
 	string _name;
@@ -40,13 +41,6 @@ public:
 	void set_name(string name);
 	string get_name();
 
-	static int get_width();
-	static int get_height();
-	static datetime get_time(int x);
-	static double get_price(int y);
-	static int get_x(datetime time);
-	static int get_y(double price);
-
 	void enable_mouse_move();
 	int get_cursor_x();
 	int get_cursor_y();
@@ -58,6 +52,7 @@ public:
 	virtual void on_double_click(int x, int y);
 	virtual void on_key_down(int key);
 	virtual void on_mouse_move(int x, int y);
+
 	virtual void on_new_bar();
 	virtual void on_new_price();
 
@@ -205,16 +200,6 @@ double Context::get_cursor_price(){
 	return get_price(_curosr_y);
 }
 
-int Context::get_width(){
-	int width = (int)ChartGetInteger(0, CHART_WIDTH_IN_PIXELS, 0);
-	return width;
-}
-
-int Context::get_height(){
-	int height = (int)ChartGetInteger(0, CHART_HEIGHT_IN_PIXELS, 0);
-	return height;
-}
-
 void Context::on_click(int x, int y){
 	return;
 }
@@ -255,36 +240,5 @@ void Context::on_order_close(Order* order){
 }
 void Context::on_order_delete(Order* order){
 	return;	
-}
-
-
-datetime Context::get_time(int x){
-	datetime time;
-	double price;
-	int sub_window;
-	ChartXYToTimePrice(0, x, 0, sub_window, time, price);
-	return time;
-}
-
-double Context::get_price(int y){
-	datetime time;
-	double price;
-	int sub_window;
-	ChartXYToTimePrice(0, 0, y, sub_window, time, price);
-	return price;
-}
-
-int Context::get_x(datetime time){
-	int sub_window = 0;
-	int x, y;
-	ChartTimePriceToXY(0, sub_window, time, Close[0], x, y);
-	return x;
-}
-
-int Context::get_y(double price){
-	int sub_window = 0;
-	int x, y;
-	ChartTimePriceToXY(0, sub_window, Time[0], price, x, y);
-	return y;
 }
 
