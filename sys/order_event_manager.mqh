@@ -15,7 +15,7 @@ public:
 	virtual void on_order_delete(Order* order){}
 };
 
-class OrderMonitor
+class OrderEventManager
 {
 	ORDER_ARRAY _pending_list;
 	ORDER_ARRAY _opened_list;
@@ -109,5 +109,5 @@ public:
 	}
 };
 
-OrderMonitor _order_manager;
+OrderEventManager _order_event_manager;
 

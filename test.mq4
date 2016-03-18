@@ -41,13 +41,13 @@ public:
 	virtual void init(){
 		enable_mouse_move();
 		listener = new Listener();
-		_order_manager.set_listener(listener);
+		_order_event_manager.set_listener(listener);
 
 		int total = MTDOrdersHistoryTotal();
 		log(str(total));
 	}
 	virtual void start(){
-	   _order_manager.start();
+	   _order_event_manager.start();
 	}
 	virtual void on_key_down(int key){
 		Order* order = new Order(OP_BUYSTOP, get_cursor_price(), 0.2);

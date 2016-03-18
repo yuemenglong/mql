@@ -2,7 +2,7 @@
 #include "../kit/log.mqh"
 #include "../std/array.mqh"
 #include "../std/file.mqh"
-#include "order_monitor.mqh"
+#include "order_event_manager.mqh"
 
 class Context;
 
@@ -95,6 +95,9 @@ void Context::_on_init(){
 }
 
 void Context::_on_start(){
+	if(_listener){
+		_order_event_manager.start();
+	}
 	if(Time[0] == _last_time){
 		on_new_price();
 	}else{
@@ -238,7 +241,7 @@ void Context::on_new_price(){
 
 void Context::enable_order_event(){
 	_listener = new ContextOrderEventListener(&this);
-	_order_manager.set_listener(_listener);
+	_order_event_manager.set_listener(_listener);
 }
 
 void Context::on_order_pending(Order* order){
