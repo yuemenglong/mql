@@ -38,6 +38,12 @@ struct NAME \
 		_head = (_capacity + _head) % _capacity; \
 		_tail = (_capacity + _tail) % _capacity; \
 	} \
+	T front(){ \
+		return _array[pos(0)]; \
+	} \
+	T back(){ \
+		return _array[pos(size()-1)]; \
+	} \
 	void push_back(T t){ \
 		if(full()){ \
 			return; \
@@ -188,6 +194,12 @@ struct NAME \
 	void fix(){ \
 		_head = (_capacity + _head) % _capacity; \
 		_tail = (_capacity + _tail) % _capacity; \
+	} \
+	T* front(){ \
+		return _array[pos(0)]; \
+	} \
+	T* back(){ \
+		return _array[pos(size()-1)]; \
 	} \
 	void push_back(T* t){ \
 		if(full()){ \
