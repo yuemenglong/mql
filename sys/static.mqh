@@ -70,5 +70,4 @@ public:
 		double height = array.back() - array.front();
 		return height / 40;
 	}
-
 };

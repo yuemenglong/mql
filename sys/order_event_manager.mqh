@@ -3,8 +3,6 @@
 #include "../std/array.mqh"
 #include "order.mqh"
 
-ARRAY_DEFINE(Order, ORDER_ARRAY);
-
 class OrderEventListener
 {
 public:
@@ -48,7 +46,7 @@ public:
 	}
 	void check_state(){
 		ORDER_ARRAY current_list;
-		list_current_orders(current_list);
+		OrderStatic::get_orders(current_list);
 		int i = 0;
 		Order* order = NULL;
 		for(i = 0; i < current_list.size(); i++){
@@ -69,7 +67,7 @@ public:
 				delete order;
 				continue;
 			}
-			int type = order.order_type();
+			int type = order.type();
 			if(type == 0 || type == 1){
 				_opened_list.push_back(order);
 				_pending_list.remove(i);
@@ -96,15 +94,6 @@ public:
 			}
 		}
 		current_list.del();
-	}
-	void list_current_orders(ORDER_ARRAY& array){
-		int total = MTDOrdersTotal();
-		for(int i = 0; i < total; i++)
-		{
-			MTDOrderSelect(i, SELECT_BY_POS);
-			Order* order = new Order(MTDOrderTicket());
-			array.push_back(order);
-		}
 	}
 };
 
