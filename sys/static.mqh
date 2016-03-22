@@ -71,28 +71,28 @@ public:
 		return array[count/2];
 	}
 
-	static double get_range_avg_height(double fix = 1.0){
-		return get_range_avg_height(160, fix);
+	static double get_k_avg_height(double fix = 1.0){
+		return get_k_avg_height(160, fix);
 	}
 
-	static double get_range_avg_height(int count, double fix){
+	static double get_k_avg_height(int count, double fix){
 		double total = 0;
 		for(int i = 0; i < count; i++){
-			double range = High[i] - Low[i];
-			total += range;
+			double k = High[i] - Low[i];
+			total += k;
 		}
 		return total / count * fix;
 	}
 
-	static double get_range_mid_height(double r = 0.5){
-		return get_range_mid_height(160, r);
+	static double get_k_mid_height(double r = 0.5){
+		return get_k_mid_height(160, r);
 	}
 
-	static double get_range_mid_height(int count, double r){
+	static double get_k_mid_height(int count, double r){
 		DOUBLE_ARRAY array;
 		for(int i = 0; i < count; i++){
-			double range = High[i] - Low[i];
-			array.push_back(MathAbs(range));
+			double k = High[i] - Low[i];
+			array.push_back(MathAbs(k));
 		}
 		array.sort();
 		return array[(int)(count*r)];
