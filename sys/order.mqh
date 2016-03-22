@@ -93,6 +93,12 @@ public:
 		}
 		return MTDOrderOpenPrice();
 	}
+	double stop_loss(){
+		if(!select() && !select_history()){
+			return -1;
+		}
+		return MTDOrderStopLoss();	
+	}
 	datetime open_time(){
 		if(!select() && !select_history()){
 			return -1;
