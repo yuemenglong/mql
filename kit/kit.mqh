@@ -69,3 +69,11 @@ void label(string name, string text, int row, int corner = 0, int clr = Lime)
 double normalise(double price){
 	return (int)(price * 100000) / 100000.0;
 }
+
+int fix(double d, int p){
+	int times = 1;
+	for(int i = 0; i < p; i++){
+		times *= 10;
+	}
+	return (int)(d * times);
+}

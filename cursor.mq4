@@ -50,28 +50,12 @@ public:
 		bar_label.hide();
 	}
 	virtual void start(){
-		double array[160];
-		double total = 0;
-		double high = 0;
-		double low = 100;
-		for(int i = 0; i < SCREEN_NUM; i++)
-		{
-			array[i] = MathAbs(Open[i] - Close[i]);
-			total += array[i];
-			if(High[i] > high){
-				high = High[i];
-			}
-			if(Low[i] < low){
-				low = Low[i];
-			}
-		}
-		ArraySort(array);
-		int cur = int(MathAbs(Open[0] - Close[0]) * 100000);
-		int avg = int(total / SCREEN_NUM * 100000);
-		int md = int(array[SCREEN_NUM/3*2] * 100000);
-		int scr = int((high - low) / 20 * 0.66 * 100000);
 		string gap = "    ";
-		string output = join(str(cur), gap, str(md), gap, str(avg), gap, str(scr));
+		// int avg = fix(get_shad_avg_height(160, 1.3), 5);
+		int avg = fix(get_range_avg_height(1.3), 5);
+		// int mid = fix(get_shad_mid_height(160, 0.7), 5);
+		int mid = fix(get_range_mid_height(0.75), 5);
+		string output = join(str(avg), gap, str(mid));
 		// label("TEST_CURSOR_LABEL_AVG", output, 1);
 		bar_label.set_text(output);
 		bar_label.show();

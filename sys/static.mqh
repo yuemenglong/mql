@@ -43,6 +43,17 @@ public:
 		return y;
 	}
 
+	static double get_grid_height(int count = 160){
+		DOUBLE_ARRAY array;
+		for(int i = 0; i < count; i++){
+			array.push_back(High[i]);
+			array.push_back(Low[i]);
+		}
+		array.sort();
+		double height = array.back() - array.front();
+		return height / 40;
+	}
+
 	static double get_bar_avg_height(int count = 160){
 		double total = 0;
 		for(int i = 0; i < count; i++){
@@ -60,14 +71,58 @@ public:
 		return array[count/2];
 	}
 
-	static double get_bar_grid_height(int count = 160){
+	static double get_range_avg_height(double fix = 1.0){
+		return get_range_avg_height(160, fix);
+	}
+
+	static double get_range_avg_height(int count, double fix){
+		double total = 0;
+		for(int i = 0; i < count; i++){
+			double range = High[i] - Low[i];
+			total += range;
+		}
+		return total / count * fix;
+	}
+
+	static double get_range_mid_height(double r = 0.5){
+		return get_range_mid_height(160, r);
+	}
+
+	static double get_range_mid_height(int count, double r){
 		DOUBLE_ARRAY array;
 		for(int i = 0; i < count; i++){
-			array.push_back(High[i]);
-			array.push_back(Low[i]);
+			double range = High[i] - Low[i];
+			array.push_back(MathAbs(range));
 		}
 		array.sort();
-		double height = array.back() - array.front();
-		return height / 40;
+		return array[(int)(count*r)];
 	}
+
+	static double get_shad_avg_height(double fix = 1.0){
+		return get_shad_avg_height(160, fix);
+	}
+
+	static double get_shad_avg_height(int count, double fix){
+		double total = 0;
+		for(int i = 0; i < count; i++){
+			double shad = High[i] - Low[i] - MathAbs(Open[i] - Close[i]);
+			total += shad;
+		}
+		return total / count * fix;
+	}
+
+	static double get_shad_mid_height(double r = 0.5){
+		return get_shad_mid_height(160, r);
+	}
+
+	static double get_shad_mid_height(int count, double r){
+		DOUBLE_ARRAY array;
+		for(int i = 0; i < count; i++){
+			double shad = High[i] - Low[i] - MathAbs(Open[i] - Close[i]);
+			array.push_back(MathAbs(shad));
+		}
+		array.sort();
+		return array[(int)(count*r)];
+	}
+
 };
