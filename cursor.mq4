@@ -57,7 +57,9 @@ public:
 		// int mid = fix(get_k_mid_height(0.75), 5);
 		// string output = join(str(avg), gap, str(mid));
 		// label("TEST_CURSOR_LABEL_AVG", output, 1);
-		bar_label.set_text(str(get_k_mid_height(0.7)));
+		// bar_label.set_text(str(get_k_mid_height(30, 0.8)));
+		double atr = iATR(Symbol(), 0, 14, 0);
+		bar_label.set_text(str(atr));
 		bar_label.show();
 	}
 };

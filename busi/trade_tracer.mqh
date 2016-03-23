@@ -27,6 +27,10 @@ public:
 
 ARRAY_DEFINE(trade_data_t, TRADE_ARRAY);
 
+double next_price_pos(){
+	return 0.001 * (MathRand() % 15);
+}
+
 void get_trade_from_csv(string path, int clr, TRADE_ARRAY& array){
 	File file(path);
 	file.read_line();
@@ -64,12 +68,12 @@ void get_trade_from_csv(string path, int clr, TRADE_ARRAY& array){
 		data.open_label.set_color(clr);
 		data.close_label.set_color(clr);
 		data.open_label.set_time(data.open_time);
-		data.open_label.set_price(data.open_price + 0.005);
+		data.open_label.set_price(data.open_price + next_price_pos());
 		data.close_label.set_time(data.close_time);
-		data.close_label.set_price(data.close_price - 0.005);
+		data.close_label.set_price(data.close_price - next_price_pos());
 
 		data.open_label.set_text(DoubleToString(data.volumn, 2));
-		data.close_label.set_text(DoubleToString(data.profit, 2));
+		data.close_label.set_text(DoubleToString(data.profit, 2) + "==" + DoubleToString(data.account, 2));
 
 		array.push_back(data);
 	}	
@@ -83,6 +87,7 @@ private:
 	TRADE_ARRAY _trade_array;
 public:
 	TradeTracer(string path, int clr){
+		MathSrand(clr);
 		get_trade_from_csv(path, clr, _trade_array);
 	}
 	void show(){
