@@ -8,8 +8,8 @@
 #include "sys/context.mqh";
 #include "busi/trade_tracer.mqh";
 
-TradeTracer t1("trade/auto/2014.csv", clrLime);
-TradeTracer t2("trade/auto/2014.2.csv", clrRed);
+TradeTracer t1("trade/auto/2010.csv", clrLime);
+TradeTracer t2("trade/auto/2010.2.csv", clrRed);
 
 class Trade : public Context
 {
