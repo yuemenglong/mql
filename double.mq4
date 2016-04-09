@@ -23,49 +23,6 @@ double meta_stop_loss = stop_loss / 5;
 //| Custom indicator initialization function                         |
 //+------------------------------------------------------------------+
 
-// 1. 触发开仓后没有突破，平仓后继续开
-// 2. 影线止损后继续开
-// 3. 实体止损后再开一次
-class ReopenMonitor : public ArrayItem
-{
-	Order* _order;
-	int _type;
-	int _stop_times;
-public:
-	ReopenMonitor(Order* order){
-		_order = order;
-		_type = order.type();
-		_stop_times = 0;
-	}
-	void on_new_bar(){
-		log(str(_type));
-		// 1. 触发开仓后没有突破，平仓后继续开
-		if(_type < 2){
-			return;
-		}
-		_type = _order.type();
-		if(_type >= 2){
-			return;
-		}
-		if(_type == OP_BUY && Close[0] < _order.open_price()){
-			_order.close();
-			_order.send();
-		} else if(_type == OP_SELL && Close[0] > _order.open_price()){
-			_order.close();
-			_order.send();
-		}
-	}
-	void on_new_price(){
-
-	}
-	void del(){
-		delete _order;
-	}
-};
-
-
-ARRAY_DEFINE(ReopenMonitor, REOPEN_MONITOR_ARRAY);
-
 class Double : public Context
 {
 	double _mark_price;
@@ -158,16 +115,14 @@ public:
 		if(order.type() == OP_BUY && order.open_price() > Close[0]){
 			log("Not Break");
 			order.close();
-			Sleep(2000);
+			Sleep(1000);
 			order.send();
-			Sleep(2000);
 			log("Reopen Buy");
 		} else if(order.type() == OP_SELL && order.open_price() < Close[0]){
 			log("Not Break");
 			order.close();
-			Sleep(2000);
+			Sleep(1000);
 			order.send();
-			Sleep(2000);
 			log("Reopen Sell");
 		} else{
 			_break_array.push_back(ticket);
