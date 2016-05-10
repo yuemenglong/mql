@@ -15,6 +15,10 @@ struct NAME \
 		_head = 0; \
 		_tail = 1; \
 	} \
+	void reset(){ \
+		_head = 0; \
+		_tail = 1; \
+	} \
 	bool full(){ \
 		return size() == _capacity - 1; \
 	} \
@@ -141,6 +145,9 @@ struct NAME \
 			_tail = size + 1; \
 		} \
 		ArraySort(_array, size(), _head+1); \
+	} \
+	void clear(){ \
+		reset(); \
 	} \
 }; \
 

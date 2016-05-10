@@ -7,7 +7,7 @@ private:
 	int _fd;
 	STR_ARRAY _cache;
 public:
-	File(string path, int flag = FILE_CSV | FILE_READ | FILE_SHARE_READ){
+	File(string path, int flag = FILE_CSV | FILE_READ | FILE_WRITE | FILE_SHARE_READ){
 		_fd = FileOpen(path, flag);
 		if(_fd == INVALID_HANDLE){
 			log("Open File Fail", path);
@@ -45,5 +45,29 @@ public:
 	}
 	datetime read_time(){
 		return StringToTime(read_string());
-	}	
+	}
+	void write(string str){
+		_cache.push_back(str);
+	}
+	void write(double d){
+		_cache.push_back(str(d));
+	}
+	void write(int i){
+		_cache.push_back(str(i));
+	}
+	void write(datetime t){
+		_cache.push_back(str(t));
+	}
+	void flush(){
+		string output;
+		for(int i = 0; i < _cache.size(); i++){
+			// _cache.push_back(items[i]);
+			if(i != 0){
+				StringAdd(output, ",");
+			}
+			StringAdd(output, _cache[i]);
+		}
+		_cache.clear();
+		FileWrite(_fd, output);
+	}
 };
