@@ -24,6 +24,10 @@ public:
 		if(last_time >= Time[0]){
 			return;
 		}
+		if(current_year != get_current_year()){
+			open_file();
+		}
+		current_year = get_current_year();
 		file.write(Time[0]);
 		file.write(Open[0]);
 		file.write(High[0]);
@@ -31,13 +35,24 @@ public:
 		file.write(Close[0]);
 		file.flush();
 		last_time = Time[0];
+		log("Record", str(Time[0]));
 	}
-	virtual void on_new_bar(){
+	int get_current_year(){
 		MqlDateTime time_struct;
 		TimeToStruct(Time[0],time_struct);
-		// log(str(time_struct.year));
-		current_year = time_struct.year;
-		log(str(current_year));
+		// current_year = time_struct.year;
+		return time_struct.year;
+	}
+	void open_file(){
+		if(file){
+			file.close();
+		}
+		string file_name = str(get_current_year());
+		StringAdd(file_name, ".csv");
+		file = new File(file_name);
+	}
+	virtual void on_new_bar(){
+		// log(str(current_year));
 		record_current();
 	}
 	virtual void on_key_down(int key){
@@ -46,9 +61,8 @@ public:
 		}
 		record = !record;
 		if(record){
-			string file_name = str(current_year);
-			StringAdd(file_name, ".csv");
-			file = new File(file_name);
+			current_year = get_current_year();
+			open_file();
 			record_current();
 		}else{
 			file.close();
