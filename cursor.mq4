@@ -52,7 +52,11 @@ public:
 		bar_label.hide();
 	}
 	virtual void start(){
-		string gap = "    ";
+		time_label.set_text(str(Time[0]));
+		time_label.show();
+		bar_label.set_text(str(Close[0]));
+		bar_label.show();
+		// string gap = "    ";
 		// int avg = fix(get_shad_avg_height(160, 1.3), 5);
 		// int avg = fix(get_k_avg_height(1.3), 5);
 		// int mid = fix(get_shad_mid_height(160, 0.7), 5);
