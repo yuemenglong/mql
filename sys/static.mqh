@@ -133,5 +133,19 @@ public:
 		return iMA(NULL, 0, cycle, prev, MODE_EMA, PRICE_CLOSE, i);
 	}
 
-
+	static void delete_object_prefix(string prefix){
+		//删除xx开头的对象
+		int count = ObjectsTotal();
+		for (int i = 0; i < count; i++)
+		{
+			string name = ObjectName(i);
+			int index = StringFind(name, prefix, 0);
+			if(index == 0){
+				if(ObjectDelete(name) == true){
+					i = i - 1;
+					count = ObjectsTotal();
+				}
+			}    
+		} 
+	}
 };

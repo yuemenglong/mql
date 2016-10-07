@@ -1,0 +1,88 @@
+#include <MTDinc.mqh>
+#include "../kit/log.mqh"
+#include "../std/file.mqh"
+#include "../view/line.mqh"
+#include "context.mqh"
+
+#define MAX_POS 1024
+#define PREFIX "ORDER_LINE_"
+
+const int INIT = 0;
+const int OPEN = 1;
+const int CLOSE = 2;
+const int DELETE= 3;
+
+
+class order_t
+{
+public:
+	datetime openTime;
+	datetime closeTime;
+	double open;
+	double close;
+	double volumn;
+	int status;//init, open, close, delete
+
+	order_t(){
+		status = INIT;
+	}
+};
+
+
+class Trade : public Context
+{
+	order_t _orders[MAX_POS];
+	int _order_pos;
+public:
+	Trade(){
+		_order_pos = 0;
+	}
+	int order_buy(double volumn = 1){
+		if(_order_pos >= MAX_POS){
+			log("Reach Max Pos, Can't Open New Order");
+			return -1;
+		}
+		int ret = _order_pos++;	
+		_orders[ret].openTime = Time[0];
+		_orders[ret].open = Close[0];
+		_orders[ret].volumn = volumn;
+		_orders[ret].status = OPEN;
+
+		string lineName = PREFIX + str(ret);
+		HLine line(lineName);
+		line.set_color(clrLime);
+		line.set_price(Close[0]);
+		line.show();
+
+		return ret;
+	}
+	int order_sell(double volumn = 1){
+		return 0;
+	}
+	int order_close(int ticket){
+		if(_orders[ticket].status != OPEN){
+			log("Close An Order Which Not Open");
+			return -1;
+		}
+		_orders[ticket].closeTime = Time[0];
+		_orders[ticket].close = Close[0];
+		_orders[ticket].status = CLOSE;
+
+		string lineName = PREFIX + str(ticket);
+		ObjectDelete(lineName);
+		Line line(lineName);
+		line.set_from(_orders[ticket].openTime, _orders[ticket].open);
+		line.set_to(_orders[ticket].closeTime, _orders[ticket].close);
+		line.set_color(clrRed);
+		line.show();
+		
+		return 0;
+	}
+	int order_show(){
+		return 0;
+	}
+	int order_hide(){
+		delete_object_prefix(PREFIX);
+		return 0;
+	}
+};
