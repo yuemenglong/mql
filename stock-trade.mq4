@@ -12,13 +12,11 @@ class Stock : public Trade
 public:
 	virtual void init(){
 		_order = -1;
-		order_hide();
-		order_show();
 	}
 	virtual void deinit(){
-		order_hide();
+		order_clear();
 	}
-	void order_open(){
+	void open(){
 		if(_order != -1){
 			log("Order Exists");
 			return;
@@ -26,7 +24,7 @@ public:
 		_order = order_buy();
 		log("Order Open");
 	}
-	void order_close(){
+	void close(){
 		if(_order == -1){
 			log("Order Not Exists");
 			return;
@@ -35,13 +33,19 @@ public:
 		_order = -1;
 		log("Order Close");
 	}
+	void save(){
+		order_save();
+	}
 	virtual void on_key_down(int key){
 		log(str(key));
 		if(key == 66){
-			order_open();
+			open();
 		}
 		if(key == 67){//check
-			order_close();
+			close();
+		}
+		if(key == 83){//save
+			save();
 		}
 	}
 };

@@ -35,7 +35,7 @@ public:
 	virtual void init(){
 		_trend_flag = false;
 		_trend_label.set_id("DOUBLE_TREND_LABEL");	
-		_trend_label.set_corner(1);
+		_trend_label.set_corner(0, 0);
 		_trend_label.set_text(str(_trend_flag));
 		_trend_label.show();
 	}

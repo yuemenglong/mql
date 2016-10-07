@@ -44,21 +44,22 @@ public:
 	void set_row(int row){
 		_y = (int)(_size * row * 1.5);
 	}
-	void set_corner(int corner){
-		_corner = corner;
-		switch(corner){
-		case CORNER_LEFT_UPPER:
+	void set_corner(int x, int y){
+		if(x == 0 && y == 0){
+			_corner = CORNER_LEFT_UPPER;
 			_anchor = ANCHOR_LEFT_UPPER;
-			break;
-		case CORNER_LEFT_LOWER:
-			_anchor = ANCHOR_LEFT_LOWER;
-			break;
-		case CORNER_RIGHT_UPPER:
+		}else if(x ==1 && y == 0){
+			_corner = CORNER_RIGHT_UPPER;
 			_anchor = ANCHOR_RIGHT_UPPER;
-			break;
-		case CORNER_RIGHT_LOWER:
+		}else if(x ==0 && y == 1){
+			_corner = CORNER_LEFT_LOWER;
+			_anchor = ANCHOR_LEFT_LOWER;
+		}else if(x ==1 && y == 1){
+			_corner = CORNER_RIGHT_LOWER;
 			_anchor = ANCHOR_RIGHT_LOWER;
-			break;
+		}else{
+			log("Invalid Corner");
+			return;
 		}
 	}
 	virtual void show(){

@@ -79,11 +79,25 @@ public:
 
 		return 0;
 	}
-	int order_show(){
+	int order_clear(){
+		delete_object_prefix(PREFIX);
 		return 0;
 	}
-	int order_hide(){
-		delete_object_prefix(PREFIX);
+	int order_save(){
+		File* file = new File(Symbol() + ".trade.csv");
+		for(int i = 0; i < _order_pos; i++){
+			if(_orders[i].status == DELETE){
+				continue;
+			}
+			file.write(_orders[i].openTime);
+			file.write(_orders[i].closeTime);
+			file.write(_orders[i].open);
+			file.write(_orders[i].close);
+			file.write(_orders[i].volumn);
+			file.write(_orders[i].status);
+			file.flush();
+		}
+		file.close();
 		return 0;
 	}
 };
