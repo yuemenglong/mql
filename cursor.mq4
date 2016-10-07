@@ -56,17 +56,6 @@ public:
 		time_label.show();
 		bar_label.set_text(str(Close[0]));
 		bar_label.show();
-		// string gap = "    ";
-		// int avg = fix(get_shad_avg_height(160, 1.3), 5);
-		// int avg = fix(get_k_avg_height(1.3), 5);
-		// int mid = fix(get_shad_mid_height(160, 0.7), 5);
-		// int mid = fix(get_k_mid_height(0.75), 5);
-		// string output = join(str(avg), gap, str(mid));
-		// label("TEST_CURSOR_LABEL_AVG", output, 1);
-		// bar_label.set_text(str(get_k_mid_height(30, 0.8)));
-		// double atr = get_k_mid_height(30, 0.7);
-		// bar_label.set_text(str(get_cursor_price()));
-		// bar_label.show();
 	}
 };
 
