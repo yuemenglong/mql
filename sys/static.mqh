@@ -125,11 +125,11 @@ public:
 		return array[(int)(count*r)];
 	}
 
-	static double ma(int cycle, int i, int prev=0) {
+	static double ma(int cycle, int i=0, int prev=0) {
 		return iMA(NULL, 0, cycle, prev, MODE_SMA, PRICE_CLOSE, i);
 	}
 
-	static double ema(int cycle, int i, int prev=0) {
+	static double ema(int cycle, int i=0, int prev=0) {
 		return iMA(NULL, 0, cycle, prev, MODE_EMA, PRICE_CLOSE, i);
 	}
 
