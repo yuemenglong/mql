@@ -74,8 +74,9 @@ public:
 		line.set_from(_orders[ticket].openTime, _orders[ticket].open);
 		line.set_to(_orders[ticket].closeTime, _orders[ticket].close);
 		line.set_color(clrRed);
+		line.set_width(2);
 		line.show();
-		
+
 		return 0;
 	}
 	int order_show(){
