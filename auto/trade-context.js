@@ -1,6 +1,5 @@
 var _ = require("lodash");
 var fs = require("fs");
-var Promise = require("bluebird");
 var getBars = require("./data-source").getBars;
 
 var env = { symbol: "000001" };
