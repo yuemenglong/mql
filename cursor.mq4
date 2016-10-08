@@ -19,6 +19,7 @@
 extern int SCREEN_NUM = 160;
 HLine hline("CURSOR_HLINE");
 VLine vline("CURSOR_VLINE");
+Label symbol_label("CURSOR_SYMBOL_LABEL");
 Label time_label("CURSOR_TIME_LABEL");
 Label bar_label("CURSOR_BAR_LABEL");
 
@@ -29,6 +30,8 @@ public:
 		enable_mouse_move();
 		hline.set_color(clrWhite);
 		vline.set_color(clrWhite);
+		symbol_label.set_text(Symbol());
+		symbol_label.show();
 		time_label.set_row(1);
 		bar_label.set_row(2);
 	}

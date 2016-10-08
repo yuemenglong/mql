@@ -2,6 +2,7 @@
 
 #include "sys/context.mqh"
 #include "view/label.mqh"
+#include "kit/proc.mqh"
 
 class Test : public Context
 {
@@ -42,6 +43,7 @@ public:
 	}
 	virtual void on_key_down(int key){
 		if(key != 84){
+			Process::node();
 			return;
 		}
 		record = !record;

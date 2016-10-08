@@ -13,6 +13,9 @@ public:
 			log("Open File Fail", path);
 		}
 	}
+	static int del(string path){
+		return FileDelete(path) ? 0 : -1;
+	}
 	void close(){
 		FileClose(_fd);
 	}

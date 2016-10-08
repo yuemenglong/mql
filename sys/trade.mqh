@@ -80,7 +80,7 @@ public:
 		return 0;
 	}
 	int order_delete_last(){
-		if(_order_pos == 0 || _orders[_order_pos-1].status == OPEN){
+		if(_order_pos == 0){
 			log("Can't Delete Order");
 			return 0;
 		}
@@ -94,7 +94,9 @@ public:
 		return 0;
 	}
 	int order_save(){
-		File* file = new File(Symbol() + ".trade.csv");
+		string fileName = Symbol() + ".trade.csv";
+		File::del(fileName);
+		File* file = new File(fileName);
 		for(int i = 0; i < _order_pos; i++){
 			if(_orders[i].status == DELETE){
 				continue;

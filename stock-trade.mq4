@@ -5,8 +5,9 @@
 #include "kit/kit.mqh";
 #include "sys/trade.mqh";
 #include "view/label.mqh";
+#include "kit/proc.mqh";
 
-string TEXT = "Save(S)/Refresh(R)/Delete(D)/Mode(M)";
+string TEXT = "Save(S)/Delete(D)/Clear(R)/Analyze(A)/Mode(M)";
 
 class Stock : public Trade
 {
@@ -47,6 +48,10 @@ public:
 		_order = -1;
 		log("Order Close");
 	}
+	void delete_last(){
+		order_delete_last();
+		_order = -1;
+	}
 	void save(){
 		order_save();
 		_save_flag = true;
@@ -61,8 +66,19 @@ public:
 	void switch_mode(){
 		_auto = !_auto;
 	}
+	void analyze(){
+		save();
+		string cwd = Process::cwd() + "MQL4\\Indicators\\Test\\auto";
+		string param = "analyze -- " + Symbol();
+		Process::node(param, cwd);
+	}
 	virtual void on_new_bar(){
 		if(!_auto){
+			return;
+		}
+		//special case
+		if(_order != -1 && Close[0] < 0.8 * Close[1]){
+			delete_last();
 			return;
 		}
 		if(_order == -1 && ema(6) > ema(18)){
@@ -81,13 +97,15 @@ public:
 		}else if(key == 67){//close
 			close();
 		}else if(key == 68){//delete
-			order_delete_last();
-		}else if(key == 82){//refresh
+			delete_last();
+		}else if(key == 82){//clear
 			order_clear();
 		}else if(key == 77){//switch mode
 			switch_mode();
 		}else if(key == 83){//save
 			save();
+		}else if(key == 65){//analyze
+			analyze();			
 		}
 		show_label();
 	}

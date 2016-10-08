@@ -29,19 +29,17 @@ function Context() {
     }
     this.bar = function(n) {
         n = n || 0;
-        if (n > this._pos) {
-            return this._bars[0];
-        } else {
-            return this._bars[this._pos - n];
-        }
+        var idx = this._pos - n;
+        if (idx < 0) idx = 0;
+        if (idx >= this._bars.length) idx = this._bars.length - 1;
+        return this._bars[idx];
+    }
+    this.hasNext = function() {
+        return this._pos < this._bars.length;
     }
     this.next = function() {
-        if (this._pos >= this._bars.length) {
-            return false;
-        }
         this.onNewBar();
         this._pos++;
-        return true;
     }
 }
 
@@ -85,7 +83,9 @@ function Trade() {
 
 function execute(trade) {
     trade.initialize();
-    while (trade.next()) {}
+    while (trade.hasNext()) {
+        trade.next();
+    }
     trade.deinitialize();
 }
 

@@ -22,8 +22,18 @@ function getTable() {
 }
 
 function getRawLines() {
+    function getTable() {
+        var nums = _.range(0, 10).map(function(i) {
+            return [i, i];
+        })
+        var letters = _.range(0, 26).map(function(i) {
+            var a = "a".charCodeAt(0);
+            return [String.fromCharCode(a + i), 10 + i];
+        })
+        return _.fromPairs(nums.concat(letters));
+    }
+
     var table = getTable();
-    var lines = fs.readFileSync("000001.2001").toString().match(/.+/gm);
 
     function decodeLine(line) {
         var items = line.split(",");
@@ -42,7 +52,7 @@ function getRawLines() {
     }
 
     function decodeTime(line) {
-        line[0] = moment(DATE_BASE + (line[0] - 3600 * 8) * 1000).format("YYYY-MM-DD HH:mm:ss");
+        line[0] = moment(DATE_BASE + (line[0] - 3600 * 8) * 1000).format("YYYY.MM.DD HH:mm");
         return line;
     }
 
@@ -56,14 +66,16 @@ function getRawLines() {
 
     function transGroupToList(result, value, key) {
         var date = key;
-        var open = value[0][1];
-        var high = _.max(value, "2")[2];
-        var low = _.min(value, "3")[3];
-        var close = value.slice(-1)[0][4];
+        var open = value[0][1] / 100;
+        var high = _.max(value, "2")[2] / 100;
+        var low = _.min(value, "3")[3] / 100;
+        var close = value.slice(-1)[0][4] / 100;
         var volumn = _.sumBy(value, "5");
         result.push([date, open, high, low, close, volumn]);
     }
 
+
+    var lines = fs.readFileSync("000001.2001").toString().match(/.+/gm);
     return _(lines.slice(1))
         .map(decodeLine)
         .filter(_.isObject)
@@ -74,14 +86,19 @@ function getRawLines() {
         .value();
 }
 
+function getExportLines() {
+    var path = __dirname.split("Indicators")[0] + "Files/000002.day.csv";
+    return fs.readFileSync(path).toString().match(/.+/gm).map(line => line.split(",").map((item, i) => i < 2 ? item.split(" ")[0] : _.round(item, 2)));
+}
+
 function getDisplayData(lines) {
     function toObj(line) {
         return {
             time: line[0],
-            open: line[1] / 100,
-            high: line[2] / 100,
-            low: line[3] / 100,
-            close: line[4] / 100,
+            open: line[1],
+            high: line[2],
+            low: line[3],
+            close: line[4],
             volumn: line[5]
         };
     }
@@ -111,10 +128,11 @@ function getDisplayData(lines) {
 }
 
 exports.getBars = function() {
-    return getDisplayData(getRawLines());
+    // return getDisplayData(getRawLines());
+    return getDisplayData(getExportLines());
 }
 
 if (require.main == module) {
-    var raw = getRawLines();
-    getDisplayData(raw.slice(0, 3));
+    // console.log(getExportLines());
+    console.log(getDisplayData(getExportLines()));
 }

@@ -57,9 +57,7 @@ function getContent() {
     } catch (ex) {
         // C:\MTDriver\MT4\MQL4\Indicators\Test\auto
     }
-    console.log(__dirname);
     fileName = __dirname.split("Indicators")[0] + "/Files/" + fileName;
-    console.log(fileName);
     try {
         return fs.readFileSync(fileName).toString();
     } catch (ex) {
@@ -73,6 +71,10 @@ function stat() {
     //     return acc;
     // }, {});
     var lines = getContent().match(/.+/gm);
+    if (!lines) {
+        console.log("No Order");
+        return;
+    }
 
     var acc = 10000;
     var hist = lines.map(function(line) {

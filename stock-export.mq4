@@ -49,7 +49,7 @@ public:
 		log("Record", str(Time[0]));
 	}
 	void flush(){
-		File* file = new File(Symbol() + ".export.csv");
+		File* file = new File(Symbol() + ".day.csv");
 		for(int i = 0; i < _record_pos; i++){
 			file.write(_records[i].time);
 			file.write(_records[i].open);
