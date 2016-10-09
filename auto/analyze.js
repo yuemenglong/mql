@@ -1,5 +1,6 @@
 var fs = require("fs");
 var _ = require("lodash");
+var resolveTrade = require("./common").resolveTrade;
 
 function fix(num) {
     num = _.round(num, 2).toString();
@@ -47,30 +48,12 @@ function getRawData() {
     return data;
 }
 
-function getContent() {
-    var fileName = process.argv.slice(-1)[0];
-    if (/^\d+$/.test(fileName)) {
-        fileName += ".trade.csv";
-    }
-    try {
-        return fs.readFileSync(fileName).toString();
-    } catch (ex) {
-        // C:\MTDriver\MT4\MQL4\Indicators\Test\auto
-    }
-    fileName = __dirname.split("Indicators")[0] + "/Files/" + fileName;
-    try {
-        return fs.readFileSync(fileName).toString();
-    } catch (ex) {
-        throw new Error("Can't Find File: " + fileName);
-    }
-}
-
 function stat() {
     // var timeMap = getRawData().reduce(function(acc, item) {
     //     acc[item.time] = item;
     //     return acc;
     // }, {});
-    var lines = getContent().match(/.+/gm);
+    var lines = resolveTrade(process.argv.slice(-1)[0]).match(/.+/gm);
     if (!lines) {
         console.log("No Order");
         return;
