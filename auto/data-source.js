@@ -86,8 +86,8 @@ function getRawLines() {
         .value();
 }
 
-function getExportLines() {
-    var path = __dirname.split("Indicators")[0] + "Files/000002.day.csv";
+function getExportLines(symbol) {
+    var path = __dirname.split("Indicators")[0] + `Files/${symbol}.day.csv`;
     return fs.readFileSync(path).toString().match(/.+/gm).map(line => line.split(",").map((item, i) => i < 2 ? item.split(" ")[0] : _.round(item, 2)));
 }
 
@@ -127,12 +127,12 @@ function getDisplayData(lines) {
         .value();
 }
 
-exports.getBars = function() {
+exports.getBars = function(symbol) {
     // return getDisplayData(getRawLines());
-    return getDisplayData(getExportLines());
+    return getDisplayData(getExportLines(symbol));
 }
 
 if (require.main == module) {
     // console.log(getExportLines());
-    console.log(getDisplayData(getExportLines()));
+    console.log(getDisplayData(getExportLines(symbol)));
 }

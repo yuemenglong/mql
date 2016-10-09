@@ -2,16 +2,18 @@ var _ = require("lodash");
 var fs = require("fs");
 var getBars = require("./data-source").getBars;
 
-var env = { symbol: "000001" };
-
 var INIT = 0;
 var OPEN = 1;
 var CLOSE = 2;
 var DELETE = 3;
 
-function Context() {
+function Context(symbol) {
+    if (!symbol) {
+        throw new Error("Must Point A Symbol");
+    }
+    this._symbol = symbol;
     this._pos = 0;
-    this._bars = getBars();
+    this._bars = getBars(symbol);
 
     this.init = _.noop;
     this.deinit = _.noop;
@@ -25,7 +27,7 @@ function Context() {
         this.deinit();
     }
     this.symbol = function() {
-        return env.symbol;
+        return this._symbol;
     }
     this.bar = function(n) {
         n = n || 0;
@@ -33,6 +35,21 @@ function Context() {
         if (idx < 0) idx = 0;
         if (idx >= this._bars.length) idx = this._bars.length - 1;
         return this._bars[idx];
+    }
+    this.open = function(n) {
+        return this.bar(n).open;
+    }
+    this.high = function(n) {
+        return this.bar(n).high;
+    }
+    this.low = function(n) {
+        return this.bar(n).low;
+    }
+    this.close = function(n) {
+        return this.bar(n).close;
+    }
+    this.time = function(n) {
+        return this.bar(n).time;
     }
     this.hasNext = function() {
         return this._pos < this._bars.length;
@@ -43,8 +60,8 @@ function Context() {
     }
 }
 
-function Trade() {
-    _.merge(this, new Context());
+function Trade(symbol) {
+    _.merge(this, new Context(symbol));
     this._orders = []; //openTime closeTime open close volumn status
     this.orderBuy = function(volumn) {
         if (this._orders.length && this._orders.slice(-1)[0].status == OPEN) {
@@ -59,13 +76,14 @@ function Trade() {
             status: OPEN,
         }) - 1;
     }
-    this.orderClose = function(ticket) {
+    this.orderClose = function(ticket, price) {
         if (this._orders.length && this._orders.slice(-1)[0].status != OPEN) {
             console.log("Can't Close");
             return -1;
         }
+        price = price || this.bar(0).close;
         this._orders[ticket].closeTime = this.bar(0).time;
-        this._orders[ticket].close = this.bar(0).close;
+        this._orders[ticket].close = price;
         this._orders[ticket].status = CLOSE;
         return 0;
     }
