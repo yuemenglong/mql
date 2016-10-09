@@ -15,14 +15,14 @@ function resolve(fileName) {
 }
 
 exports.resolveData = function(fileName) {
-    if (/^\d+$/.test(fileName)) {
+    if (!/csv$/.test(fileName)) {
         fileName += ".day.csv";
     }
     return resolve(fileName);
 }
 
 exports.resolveTrade = function(fileName) {
-    if (/^\d+$/.test(fileName)) {
+    if (!/csv$/.test(fileName)) {
         fileName += ".trade.csv";
     }
     return resolve(fileName);

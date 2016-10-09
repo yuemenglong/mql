@@ -49,7 +49,6 @@ function getRawData() {
 }
 
 function analyze(lines) {
-    console.log(lines);
     // var timeMap = getRawData().reduce(function(acc, item) {
     //     acc[item.time] = item;
     //     return acc;
