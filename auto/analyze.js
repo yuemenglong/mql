@@ -48,20 +48,19 @@ function getRawData() {
     return data;
 }
 
-function stat() {
+function analyze(lines) {
+    console.log(lines);
     // var timeMap = getRawData().reduce(function(acc, item) {
     //     acc[item.time] = item;
     //     return acc;
     // }, {});
-    var lines = resolveTrade(process.argv.slice(-1)[0]).match(/.+/gm);
     if (!lines) {
         console.log("No Order");
         return;
     }
 
     var acc = 10000;
-    var hist = lines.map(function(line) {
-        var items = line.split(",");
+    var hist = lines.map(function(items) {
         var openTime = items[0].split(" ")[0];
         var closeTime = items[1].split(" ")[0];
         var time = openTime;
@@ -125,9 +124,12 @@ function comp() {
     fs.writeFileSync("a.txt", content);
 }
 
+module.exports = analyze;
+
 // ShellExecuteA(hWnd, "open", "node", "analyze -- 000001.trade.csv", "D:/workspace/nodejs/mql/auto/", 1);
 if (require.main == module) {
-    stat();
+    var lines = resolveTrade(process.argv.slice(-1)[0]).match(/.+/gm).map(l => l.split(","));
+    analyze(lines);
     if (process.argv.indexOf("--") >= 0) {
         setTimeout(_.noop, 10000000);
     }

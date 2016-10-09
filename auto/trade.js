@@ -92,10 +92,13 @@ function Trade(symbol) {
     }
     this.orderSave = function() {
         var fileName = this.symbol() + ".trade.csv";
-        var content = this._orders.map(function(o) {
-            return [o.openTime, o.closeTime, o.open, o.close, o.volumn, o.status].join(",")
-        }).join("\n");
+        var content = this.orderOutput().map(o => o.join(",")).join("\n");
         fs.writeFileSync(fileName, content);
+    }
+    this.orderOutput = function() {
+        return this._orders.map(function(o) {
+            return [o.openTime, o.closeTime, o.open, o.close, o.volumn, o.status];
+        })
     }
 }
 
@@ -105,6 +108,7 @@ function execute(trade) {
         trade.next();
     }
     trade.deinitialize();
+    return trade.orderOutput();
 }
 
 exports.Trade = Trade;

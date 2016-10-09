@@ -1,9 +1,8 @@
-var Trade = require("./trade-context").Trade;
-var execute = require("./trade-context").execute;
+var Trade = require("./trade").Trade;
 var _ = require("lodash");
 
-function Stock() {
-    _.merge(this, new Trade("000002"));
+function Strategy(symbol) {
+    _.merge(this, new Trade(symbol));
     this._order = -1;
     this.onNewBar = function() {
         var bar = this.bar(0);
@@ -26,4 +25,4 @@ function Stock() {
     }
 }
 
-execute(new Stock());
+module.exports = Strategy;

@@ -21,7 +21,7 @@ function getTable() {
     return table;
 }
 
-function getRawLines() {
+function getRawLines(symbol) {
     function getTable() {
         var nums = _.range(0, 10).map(function(i) {
             return [i, i];
