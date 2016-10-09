@@ -1,6 +1,7 @@
 var _ = require("lodash");
 var fs = require("fs");
 var getBars = require("./data-source").getBars;
+var resolve = require("./common").resolve;
 
 var INIT = 0;
 var OPEN = 1;
@@ -91,7 +92,7 @@ function Trade(symbol) {
         this._orders.pop();
     }
     this.orderSave = function() {
-        var fileName = this.symbol() + ".trade.csv";
+        var fileName = resolve(this.symbol() + ".trade.csv");
         var content = this.orderOutput().map(o => o.join(",")).join("\n");
         fs.writeFileSync(fileName, content);
     }

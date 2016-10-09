@@ -12,16 +12,16 @@ const int OPEN = 1;
 const int CLOSE = 2;
 const int DELETE= 3;
 
-
 class order_t
 {
 public:
-	datetime openTime;
-	datetime closeTime;
+	datetime open_time;
+	datetime close_time;
 	double open;
 	double close;
 	double volumn;
 	int status;//init, open, close, delete
+	int ticket;
 
 	order_t(){
 		status = INIT;
@@ -42,42 +42,48 @@ public:
 			log("Reach Max Pos, Can't Open New Order");
 			return -1;
 		}
-		int ret = _order_pos++;	
-		_orders[ret].openTime = Time[0];
-		_orders[ret].open = Close[0];
-		_orders[ret].volumn = volumn;
-		_orders[ret].status = OPEN;
+		int ticket = _order_pos++;	
+		_orders[ticket].ticket = ticket;
+		_orders[ticket].open_time = Time[0];
+		_orders[ticket].open = Close[0];
+		_orders[ticket].volumn = volumn;
+		_orders[ticket].status = OPEN;
+		order_show(_orders[ticket]);
 
-		string lineName = PREFIX + str(ret);
-		HLine line(lineName);
-		line.set_color(clrLime);
-		line.set_price(Close[0]);
-		line.show();
-
-		return ret;
+		return ticket;
 	}
 	int order_sell(double volumn = 1){
 		return 0;
 	}
-	int order_close(int ticket){
+	int order_close(int ticket, double close = 0){
 		if(_orders[ticket].status != OPEN){
 			log("Close An Order Which Not Open");
 			return -1;
 		}
-		_orders[ticket].closeTime = Time[0];
-		_orders[ticket].close = Close[0];
+		close = close == 0 ? Close[0] : close;
+		_orders[ticket].close_time = Time[0];
+		_orders[ticket].close = close;
 		_orders[ticket].status = CLOSE;
-
-		string lineName = PREFIX + str(ticket);
-		ObjectDelete(lineName);
-		Line line(lineName);
-		line.set_from(_orders[ticket].openTime, _orders[ticket].open);
-		line.set_to(_orders[ticket].closeTime, _orders[ticket].close);
-		line.set_color(clrRed);
-		line.set_width(2);
-		line.show();
+		order_show(_orders[ticket]);
 
 		return 0;
+	}
+	int order_show(order_t order){
+		string lineName = PREFIX + str(order.ticket);
+		ObjectDelete(lineName);
+		if(order.status == "OPEN"){
+			HLine line(lineName);
+			line.set_color(clrLime);
+			line.set_price(order.open);
+			line.show();
+		}else if(order.status == "CLOSE"){
+			Line line(lineName);
+			line.set_from(order.open_time, order.open);
+			line.set_to(order.close_time, order.close);
+			line.set_color(clrRed);
+			line.set_width(2);
+			line.show();
+		}
 	}
 	int order_delete_last(){
 		if(_order_pos == 0){
@@ -90,6 +96,7 @@ public:
 		return 0;
 	}
 	int order_clear(){
+		_order_pos = 0;
 		delete_object_prefix(PREFIX);
 		return 0;
 	}
@@ -101,13 +108,34 @@ public:
 			if(_orders[i].status == DELETE){
 				continue;
 			}
-			file.write(_orders[i].openTime);
-			file.write(_orders[i].closeTime);
+			file.write(_orders[i].open_time);
+			file.write(_orders[i].close_time);
 			file.write(_orders[i].open);
 			file.write(_orders[i].close);
 			file.write(_orders[i].volumn);
 			file.write(_orders[i].status);
 			file.flush();
+		}
+		file.close();
+		return 0;
+	}
+	int order_load(){
+		order_clear();
+		string fileName = Symbol() + ".trade.csv";
+		File* file = new File(fileName);
+		if(!file.valid()){
+			return -1;
+		}
+		while(!file.reach_end()){
+			_orders[_order_pos].ticket = _order_pos;
+			_orders[_order_pos].open_time = file.read_time();
+			_orders[_order_pos].close_time = file.read_time();
+			_orders[_order_pos].open = file.read_double();
+			_orders[_order_pos].close = file.read_double();
+			_orders[_order_pos].volumn = file.read_int();
+			_orders[_order_pos].status = file.read_int();
+			order_show(_orders[_order_pos]);
+			_order_pos++;
 		}
 		file.close();
 		return 0;

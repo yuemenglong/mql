@@ -1,6 +1,6 @@
 var fs = require("fs");
 
-function resolve(fileName) {
+function resolveFileContent(fileName) {
     try {
         return fs.readFileSync(fileName).toString();
     } catch (ex) {
@@ -18,12 +18,17 @@ exports.resolveData = function(fileName) {
     if (!/csv$/.test(fileName)) {
         fileName += ".day.csv";
     }
-    return resolve(fileName);
+    return resolveFileContent(fileName);
 }
 
 exports.resolveTrade = function(fileName) {
     if (!/csv$/.test(fileName)) {
         fileName += ".trade.csv";
     }
-    return resolve(fileName);
+    return resolveFileContent(fileName);
+}
+
+exports.resolve = function(fileName) {
+    fileName = __dirname.split("Indicators")[0] + "/Files/" + fileName;
+    return fileName;
 }
