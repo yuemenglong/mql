@@ -49,7 +49,7 @@ function getRawData() {
 
 function getContent() {
     var fileName = process.argv.slice(-1)[0];
-    if (/\d+/.test(fileName)) {
+    if (/^\d+$/.test(fileName)) {
         fileName += ".trade.csv";
     }
     try {
