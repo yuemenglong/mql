@@ -222,10 +222,26 @@ function getBars(lines) {
         }
     }
 
+    function macd(acc, item) {
+        var dif = item.ema[12] - item.ema[26];
+        if (!acc) {
+            var dea = dif;
+        } else {
+            var dea = acc * 0.8 + dif * 0.2;
+        }
+        item.dif = dif;
+        item.dea = dea;
+        return dea;
+    }
+
     function attachEma(lines) {
         lines.reduce(ema(6), 0);
+        lines.reduce(ema(12), 0);
         lines.reduce(ema(18), 0);
+        lines.reduce(ema(26), 0);
         lines.reduce(ema(108), 0);
+
+        lines.reduce(macd, 0);
         return lines;
     }
     return _(lines)

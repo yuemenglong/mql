@@ -1,6 +1,7 @@
 var fs = require("fs");
 var _ = require("lodash");
 var resolveTrade = require("./common").resolveTrade;
+var resolve = require("./common").resolve;
 var fix = require("./common").fix;
 
 function getNo() {
@@ -48,26 +49,27 @@ function analyze(records) {
     }
 
     var acc = 10000;
-    var hist = records.map(function(record) {
+    var result = records.map(function(record) {
         var openTime = record[0].split(" ")[0];
         var closeTime = record[1].split(" ")[0];
-        var time = openTime;
-        var open = record[2];
-        var close = record[3];
+        var open = fix(record[2]);
+        var close = fix(record[3]);
         var start = acc;
         acc = Math.floor(acc * close / open);
         var end = acc;
-        var profit = end - start;
+        var profit = fix((end - start) / start * 100);
         // var ema = timeMap[time].ema[108];
-        var info = [openTime, closeTime, fix(open, 2), fix(close, 2), start, end, (end - start) / start * 100,
+        var info = [openTime, closeTime, open, close, start, end, profit,
             // open > ema, end > start
         ].join("\t");
         console.log(info);
-        return { time, openTime, closeTime, open, close, start, end, profit };
+        return { openTime, closeTime, open, close, start, end, profit };
     }).filter(o => !!o);
 
-    var winCount = hist.filter(item => item.profit > 0).length;
-    console.log("Win Rate", winCount, hist.length, winCount / hist.length * 100);
+    var winCount = result.filter(item => item.profit > 0).length;
+    var content = result.map(item => _.values(item).join(",")).join("\n");
+    fs.writeFileSync(resolve("analyze.csv"), content);
+    console.log("Win Rate", winCount, result.length, winCount / result.length * 100);
 
     // var upper = hist.filter(function(item) {
     //     return item.open > timeMap[item.time].ema[108]
