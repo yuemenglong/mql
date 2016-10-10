@@ -136,8 +136,8 @@ function merge() {
             .value();
     }
 
-    function transStock(stock) {
-        console.log(stock);
+    function transStock(stock, i) {
+        console.log(stock, i, _.keys(stockMap).length);
         return _(stockMap[stock])
             .map(transFile)
             .flatten()
@@ -159,96 +159,16 @@ function merge() {
     return _.keys(stockMap).sort().map(transStock);
 }
 
-function generateDayLines(symbol) {
+function Import(symbol) {
 
-    function getCharTable() {
-        var nums = _.range(0, 10).map(function(i) {
-            return [i, i];
-        })
-        var letters = _.range(0, 26).map(function(i) {
-            var a = "a".charCodeAt(0);
-            return [String.fromCharCode(a + i), 10 + i];
-        })
-        return _.fromPairs(nums.concat(letters));
-    }
-
-    var charTable = getCharTable();
-
-    function mergeRawLines() {
-        var lines = fs.readdirSync(RAW_DATA_LOC).map(function(dir) {
-            var dirPath = P.resolve(RAW_DATA_LOC, dir);
-            var stat = fs.statSync(dirPath);
-            if (stat.isDirectory()) {
-                return fs.readdirSync(dirPath).map(function(fileName) {
-                    if (fileName.slice(0, 6) != symbol) {
-                        return [];
-                    }
-                    var path = P.resolve(dirPath, fileName);
-                    return fs.readFileSync(path).toString().match(/.+/gm);
-                })
-            } else {
-                return [];
-            }
-        })
-        return _.flattenDeep(lines);
-    }
-
-    function decodeLine(line) {
-        var items = line.split(",");
-        if (items.length != 6) {
-            console.log(line);
-            return;
-        }
-        var ret = {};
-        return items.map(function(item) {
-            return _.reduce(item, function(acc, c) {
-                acc *= 36;
-                acc += charTable[c];
-                return acc;
-            }, 0)
-        })
-    }
-
-    function decodeTime(record) {
-        record[0] = moment(DATE_BASE + (record[0] - 3600 * 8) * 1000).format("YYYY.MM.DD HH:mm");
-        return record;
-    }
-
-    function getDate(record) {
-        return record[0].split(" ")[0];
-    }
-
-    function getHour(record) {
-        return record[0].slice(0, 13);
-    }
-
-    function transGroupToRecord(result, value, key) {
-        var date = key;
-        var open = value[0][1] / 100;
-        var high = _.max(value, "2")[2] / 100;
-        var low = _.min(value, "3")[3] / 100;
-        var close = value.slice(-1)[0][4] / 100;
-        var volumn = _.sumBy(value, "5");
-        result.push([date, open, high, low, close, volumn]);
-    }
-
-    return _(mergeRawLines().slice(0, 10))
-        .thru(log)
-        .map(decodeLine)
-        .filter(_.isObject)
-        .map(decodeTime)
-        .sortBy("0")
-        .groupBy(getDate)
-        .transform(transGroupToRecord, [])
-        .value();
 }
 
-function getDayLines(symbol) {
-    var path = __dirname.split("Indicators")[0] + `Files/${symbol}.day.csv`;
+function getDayRecords(symbol) {
+    var path = P.resolve(__dirname, `../stock/${symbol}.day.csv`);
     return fs.readFileSync(path).toString().match(/.+/gm).map(line => line.split(",").map((item, i) => i < 2 ? item.split(" ")[0] : _.round(item, 2)));
 }
 
-function getDisplayData(lines) {
+function getBars(lines) {
     function toObj(line) {
         return {
             time: line[0],
@@ -285,9 +205,16 @@ function getDisplayData(lines) {
 }
 
 exports.getBars = function(symbol) {
-    return getDisplayData(getDayLines(symbol));
+    return getBars(getDayRecords(symbol));
 }
 
 if (require.main == module) {
-    merge();
+    if (process.argv.indexOf("--") >= 0) {
+        if (process.argv.indexOf("import") >= 0) {
+            var symbol = process.argv.slice(-1)[0];
+            Import(symbol);
+        }
+        return;
+    }
+    console.log(getDayRecords("000001"));
 }

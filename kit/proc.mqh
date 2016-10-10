@@ -22,6 +22,7 @@ public:
 		return ShellExecuteW(0, "Open", file, param, cwd, 1);
 	}
 	static int node(string param = NULL, string cwd = NULL){
+		cwd = cwd == NULL ? cwd() + "MQL4\\Indicators\\Test\\auto\\sys" : cwd;
 		return shell("node", param, cwd);
 	}
 };

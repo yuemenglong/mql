@@ -2,6 +2,7 @@ var _ = require("lodash");
 var fs = require("fs");
 var Context = require("./context");
 var resolve = require("./common").resolve;
+var fix = require("./common").fix;
 
 var INIT = 0;
 var OPEN = 1;
@@ -19,7 +20,7 @@ function Trade(symbol) {
         volumn = volumn || 1;
         return this._orders.push({
             openTime: this.bar(0).time,
-            open: this.bar(0).close,
+            open: fix(this.bar(0).close),
             volumn: volumn,
             status: OPEN,
         }) - 1;
@@ -31,7 +32,7 @@ function Trade(symbol) {
         }
         price = price || this.bar(0).close;
         this._orders[ticket].closeTime = this.bar(0).time;
-        this._orders[ticket].close = price;
+        this._orders[ticket].close = fix(price);
         this._orders[ticket].status = CLOSE;
         return 0;
     }

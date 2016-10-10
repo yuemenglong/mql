@@ -1,15 +1,15 @@
 #property indicator_chart_window
 
 #include <MTDinc.mqh>
-#include "kit/log.mqh";
-#include "kit/kit.mqh";
-#include "sys/trade.mqh";
-#include "view/label.mqh";
-#include "kit/proc.mqh";
+#include "../kit/log.mqh";
+#include "../kit/kit.mqh";
+#include "../kit/proc.mqh";
+#include "../view/label.mqh";
+#include "trade.mqh";
 
 string TEXT = "Save(S)/Load(L)/Delete(D)/Clear(R)/Analyze(A)/Mode(M)";
 
-class Stock : public Trade
+class Auto : public Trade
 {
 	int _order;
 	Label* _label;
@@ -27,16 +27,22 @@ public:
 		order_clear();
 		_label.hide();
 	}
-	void open(){
-		if(_order != -1){
+	virtual void exec(){
+
+	}
+	bool auto_opened(){
+		return _order != -1;
+	}
+	void auto_buy(){
+		if(auto_opened()){
 			log("Order Exists");
 			return;
 		}
 		_order = order_buy();
 		log("Order Open");
 	}
-	void close(){
-		if(_order == -1){
+	void auto_close(){
+		if(!auto_opened()){
 			log("Order Not Exists");
 			return;
 		}
@@ -44,6 +50,7 @@ public:
 		_order = -1;
 		log("Order Close");
 	}
+private:
 	void delete_last(){
 		order_delete_last();
 		_order = -1;
@@ -70,32 +77,28 @@ public:
 	}
 	void analyze(){
 		save();
-		string cwd = Process::cwd() + "MQL4\\Indicators\\Test\\auto";
 		string param = "analyze -- " + Symbol();
-		Process::node(param, cwd);
+		Process::node(param);
 	}
+public:
 	virtual void on_new_bar(){
 		if(!_auto){
 			return;
 		}
 		//special case
-		if(_order != -1 && Close[0] < 0.8 * Close[1]){
+		if(auto_opened() && (Close[0] < 0.8 * Close[1] || Close[0] > 1.2 * Close[1])){
 			order_close(_order, Close[1]);
 			_order = -1;
 			return;
 		}
-		if(_order == -1 && ema(6) > ema(18)){
-			open();
-		}else if(_order != -1 && ema(6) < ema(18)){
-			close();
-		}
+		exec();
 	}
 	virtual void on_key_down(int key){
 		log(str(key));
 		if(key == 66){//buy
-			open();
+			auto_buy();
 		}else if(key == 67){//close
-			close();
+			auto_close();
 		}else if(key == 68){//delete
 			delete_last();
 		}else if(key == 82){//clear
@@ -110,6 +113,5 @@ public:
 			analyze();
 		}
 		show_label();
-	}
+	}	
 };
-setup(Stock);

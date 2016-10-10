@@ -37,23 +37,23 @@ function getRawData() {
     return data;
 }
 
-function analyze(lines) {
+function analyze(records) {
     // var timeMap = getRawData().reduce(function(acc, item) {
     //     acc[item.time] = item;
     //     return acc;
     // }, {});
-    if (!lines) {
+    if (!records) {
         console.log("No Order");
         return;
     }
 
     var acc = 10000;
-    var hist = lines.map(function(items) {
-        var openTime = items[0].split(" ")[0];
-        var closeTime = items[1].split(" ")[0];
+    var hist = records.map(function(record) {
+        var openTime = record[0].split(" ")[0];
+        var closeTime = record[1].split(" ")[0];
         var time = openTime;
-        var open = items[2];
-        var close = items[3];
+        var open = record[2];
+        var close = record[3];
         var start = acc;
         acc = Math.floor(acc * close / open);
         var end = acc;
@@ -92,32 +92,17 @@ function analyze(lines) {
     // console.log("Upper Win/Loss ", lowerWinAvg, lowerLossAvg, lowerWinAvg / lowerLossAvg * 100);
 }
 
-function comp() {
-    var fileName = process.argv.slice(-1)[0];
-    var ema108 = fs.readFileSync(fileName + ".2.txt").toString().match(/.*/mg).map(function(line) {
-        var items = line.split(",");
-        var time = items[0].split(" ")[0];
-        var ema = items.slice(-1)[0];
-        return { time: time, ema: ema };
-    }).reduce(function(acc, item) {
-        acc[item.time] = item;
-        return acc;
-    }, {});
-    // console.log(getRawData());
-    var data = getRawData();
-    var content = data.map(function(item) {
-        var o = ema108[item.time] || {};
-        return `${item.time}\t${item.close}\t${item.ema[108]}\t${o.ema}`;
-    }).join("\n");
-    fs.writeFileSync("a.txt", content);
-}
-
 module.exports = analyze;
 
 // ShellExecuteA(hWnd, "open", "node", "analyze -- 000001.trade.csv", "D:/workspace/nodejs/mql/auto/", 1);
 if (require.main == module) {
-    var lines = resolveTrade(process.argv.slice(-1)[0]).match(/.+/gm).map(l => l.split(","));
-    analyze(lines);
+    var lines = resolveTrade(process.argv.slice(-1)[0]).match(/.+/gm);
+    if (!lines) {
+        console.log("No Trade Record");
+    } else {
+        var records = lines.map(line => line.split(","));
+        analyze(records);
+    }
     if (process.argv.indexOf("--") >= 0) {
         setTimeout(_.noop, 10000000);
     }
