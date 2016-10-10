@@ -7,25 +7,33 @@
 #include "../view/label.mqh";
 #include "trade.mqh";
 
-string TEXT = "Save(S)/Load(L)/Delete(D)/Clear(R)/Analyze(A)/Mode(M)";
+string TEXT1 = "Buy(B)/Close(C)/Delete(D)/Clear(R)/Mode(M)";
+string TEXT2 = "Save(S)/Load(L)/Analyze(A)/Import(I)";
 
 class Auto : public Trade
 {
 	int _order;
-	Label* _label;
+	Label* _label1;
+	Label* _label2;
 	bool _auto;
 public:
 	virtual void init(){
 		_order = -1;
 		_auto = false;
-		_label = new Label("STOCK_MANUAL_LABEL");
-		_label.set_corner(0, 1);
-		_label.set_row(1);
+
+		_label1 = new Label("AUTO_LABEL_1");
+		_label1.set_corner(0, 1);
+		_label1.set_row(1);
+
+		_label2 = new Label("AUTO_LABEL_2");
+		_label2.set_corner(0, 1);
+		_label2.set_row(2);
 		show_label();	
 	}
 	virtual void deinit(){
 		order_clear();
-		_label.hide();
+		_label1.hide();
+		_label2.hide();
 	}
 	virtual void exec(){
 
@@ -69,8 +77,10 @@ private:
 	}
 	void show_label(){
 		string mode = _auto ? " [AUTO]" : " [MANUAL]";
-		_label.set_text(TEXT + mode);
-		_label.show();
+		_label1.set_text(TEXT1 + mode);
+		_label1.show();
+		_label2.set_text(TEXT2);
+		_label2.show();
 	}
 	void switch_mode(){
 		_auto = !_auto;
@@ -78,6 +88,10 @@ private:
 	void analyze(){
 		save();
 		string param = "analyze -- " + Symbol();
+		Process::node(param);
+	}
+	void import(){
+		string param = "data-source import -- " + Symbol();
 		Process::node(param);
 	}
 public:
@@ -101,16 +115,18 @@ public:
 			auto_close();
 		}else if(key == 68){//delete
 			delete_last();
-		}else if(key == 82){//clear
-			clear();
 		}else if(key == 77){//switch mode
 			switch_mode();
 		}else if(key == 83){//save
 			save();
-		}else if(key == 76){//save
+		}else if(key == 76){//load
 			load();
+		}else if(key == 82){//clear
+			clear();
 		}else if(key == 65){//analyze
 			analyze();
+		}else if(key == 73){//import
+			import();
 		}
 		show_label();
 	}	

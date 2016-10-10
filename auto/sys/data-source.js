@@ -160,7 +160,37 @@ function merge() {
 }
 
 function Import(symbol) {
+    var importPath = __dirname.split("MT4")[0] + "import";
 
+    function rmdir(root) {
+        fs.readdirSync(root).map(function(fileName) {
+            var path = P.resolve(root, fileName);
+            var stat = fs.statSync(path);
+            if (stat.isDirectory()) {
+                rmdir(path);
+                fs.rmdirSync(path);
+            } else {
+                fs.unlinkSync(path);
+            }
+        })
+    }
+
+    function scanAndCopy(root) {
+        fs.readdirSync(root).map(function(fileName) {
+            var path = P.resolve(root, fileName);
+            var stat = fs.statSync(path);
+            if (stat.isDirectory()) {
+                scanAndCopy(path);
+            } else if (fileName.slice(0, 6) == symbol && /\.cz/.test(fileName)) {
+                var dest = P.resolve(importPath, fileName);
+                fs.createReadStream(path).pipe(fs.createWriteStream(dest)).on("finish", function() {
+                    console.log(path, dest);
+                })
+            }
+        })
+    }
+    rmdir(importPath);
+    scanAndCopy(P.resolve(__dirname, RAW));
 }
 
 function getDayRecords(symbol) {
@@ -209,12 +239,16 @@ exports.getBars = function(symbol) {
 }
 
 if (require.main == module) {
-    if (process.argv.indexOf("--") >= 0) {
-        if (process.argv.indexOf("import") >= 0) {
-            var symbol = process.argv.slice(-1)[0];
-            Import(symbol);
+    if (process.argv.indexOf("import") >= 0) {
+        var symbol = process.argv.slice(-1)[0];
+        if (!/\d{6}/.test(symbol)) {
+            throw new Error("Invalid Symbol: " + symbol);
         }
-        return;
+        Import(symbol);
+    } else {
+        console.log("Unknown Command");
     }
-    console.log(getDayRecords("000001"));
+    if (process.argv.indexOf("--") >= 0) {
+        setTimeout(_.noop, 1000000);
+    }
 }
