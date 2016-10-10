@@ -2,30 +2,166 @@ var fs = require("fs");
 var _ = require("lodash");
 var moment = require("moment");
 var P = require("path");
+var cp = require("child_process");
+var fix = require("./common").fix;
 
 var DATE_BASE = new Date(0).valueOf();
 var RAW_DATA_LOC = "H:/A-stock";
 
+var ZIP_PATH = "C:/Program Files/Bandizip/7z/7z";
+var RAW = "../raw";
+var EXTRACT_DIST = "../extract";
+var OUTPUT_DIR = "../stock";
+var EXT = ".day.csv";
+
 function log(data) {
     console.log(data);
+    fs.writeFileSync("./log.txt", JSON.stringify(data, null, "  "));
     return data;
 }
 
-function getTable() {
-    var nums = _.range(0, 10).map(function(i) {
-        return [i, i];
+function extract() {
+    fs.mkdirSync(EXTRACT_DIST);
+
+    var works = fs.readdirSync(RAW).map(function(dir) {
+        var dirPath = P.resolve(RAW, dir);
+        var stat = fs.statSync(dirPath);
+        if (!stat.isDirectory()) {
+            return;
+        }
+        return fs.readdirSync(dirPath).map(function(fileName) {
+            if (fileName.slice(-3) != ".cz") {
+                return;
+            }
+            var src = P.resolve(dirPath, fileName);
+            var dest = P.resolve(__dirname, EXTRACT_DIST);
+            return function() {
+                console.log(src, dest);
+                var child = cp.spawnSync(ZIP_PATH, ["e", src], { cwd: dest });
+            }
+        }).filter(o => !!o);
+    }).filter(o => !!o);
+    works = _.flatten(works);
+
+    works.map(function(fn, i) {
+        console.log(i, works.length);
+        fn();
     })
-    var letters = _.range(0, 26).map(function(i) {
-        var a = "a".charCodeAt(0);
-        return [String.fromCharCode(a + i), 10 + i];
-    })
-    var table = _.fromPairs(nums.concat(letters));
-    return table;
+}
+
+function getStockMap() {
+    return _.chain(fs.readdirSync(EXTRACT_DIST)).reduce(function(acc, fileName) {
+        if (!/^\d{6}\./.test(fileName)) {
+            return acc;
+        }
+        var stock = fileName.split(".")[0];
+        acc[stock] = acc[stock] || [];
+        acc[stock].push(P.resolve(EXTRACT_DIST, fileName));
+        return acc;
+    }, {}).transform(function(result, value, key) {
+        result[key] = value.sort();
+    }, {}).value();
+}
+
+function merge() {
+    var stockMap = getStockMap();
+
+    function getCharTable() {
+        var nums = _.range(0, 10).map(function(i) {
+            return [i, i];
+        })
+        var letters = _.range(0, 26).map(function(i) {
+            var a = "a".charCodeAt(0);
+            return [String.fromCharCode(a + i), 10 + i];
+        })
+        return _.fromPairs(nums.concat(letters));
+    }
+    var charTable = getCharTable();
+
+    function mergeRawLines(stock) {
+        var files = stockMap[stock];
+        return _(files).map(function(file) {
+            return fs.readFileSync(file).toString().match(/.+/gm);
+        }).flatten();
+    }
+
+    function decodeLine(line) {
+        var items = line.split(",");
+        if (items.length != 6) {
+            console.log(line);
+            return;
+        }
+        var ret = {};
+        return items.map(function(item) {
+            return _.reduce(item, function(acc, c) {
+                acc *= 36;
+                acc += charTable[c];
+                return acc;
+            }, 0)
+        })
+    }
+
+    function decodeTime(record) {
+        record[0] = moment(DATE_BASE + (record[0] - 3600 * 8) * 1000).format("YYYY.MM.DD HH:mm");
+        return record;
+    }
+
+    function getDate(record) {
+        return record[0].split(" ")[0];
+    }
+
+    function getHour(record) {
+        return record[0].slice(0, 13);
+    }
+
+    function transGroupToRecord(result, value, key) {
+        var date = key;
+        var all = _(value).map(r => [r[1], r[2], r[3], r[4]]).flatten().value();
+        var open = fix(value[0][1] / 100);
+        var high = fix(_.max(all) / 100);
+        var low = fix(_.min(all) / 100);
+        var close = fix(value.slice(-1)[0][4] / 100);
+        var volumn = _.sumBy(value, "5");
+        result.push([date, open, high, low, close, volumn]);
+    }
+
+    function transFile(file) {
+        return _(fs.readFileSync(file).toString().match(/.+/gm))
+            .map(decodeLine)
+            .filter(_.isObject)
+            .map(decodeTime)
+            .sortBy("0")
+            .groupBy(getDate)
+            .transform(transGroupToRecord, [])
+            .value();
+    }
+
+    function transStock(stock) {
+        console.log(stock);
+        return _(stockMap[stock])
+            .map(transFile)
+            .flatten()
+            .thru(writeToFile(stock))
+            .value();
+    }
+
+    function writeToFile(stock) {
+        return function(records) {
+            var filePath = P.resolve(__dirname, OUTPUT_DIR, stock + EXT);
+            var content = records.map(r => r.join(",")).join("\n");
+            fs.writeFileSync(filePath, content);
+        }
+    }
+
+    // return transFile(stockMap["000001"].slice(-1)[0]);
+    // return transStock("000001");
+    // return _.keys(stockMap).slice(0, 1).map(transStock);
+    return _.keys(stockMap).sort().map(transStock);
 }
 
 function generateDayLines(symbol) {
 
-    function getTable() {
+    function getCharTable() {
         var nums = _.range(0, 10).map(function(i) {
             return [i, i];
         })
@@ -36,7 +172,7 @@ function generateDayLines(symbol) {
         return _.fromPairs(nums.concat(letters));
     }
 
-    var table = getTable();
+    var charTable = getCharTable();
 
     function mergeRawLines() {
         var lines = fs.readdirSync(RAW_DATA_LOC).map(function(dir) {
@@ -67,26 +203,26 @@ function generateDayLines(symbol) {
         return items.map(function(item) {
             return _.reduce(item, function(acc, c) {
                 acc *= 36;
-                acc += table[c];
+                acc += charTable[c];
                 return acc;
             }, 0)
         })
     }
 
-    function decodeTime(line) {
-        line[0] = moment(DATE_BASE + (line[0] - 3600 * 8) * 1000).format("YYYY.MM.DD HH:mm");
-        return line;
+    function decodeTime(record) {
+        record[0] = moment(DATE_BASE + (record[0] - 3600 * 8) * 1000).format("YYYY.MM.DD HH:mm");
+        return record;
     }
 
-    function getDate(line) {
-        return line[0].split(" ")[0];
+    function getDate(record) {
+        return record[0].split(" ")[0];
     }
 
-    function getHour(line) {
-        return line[0].slice(0, 13);
+    function getHour(record) {
+        return record[0].slice(0, 13);
     }
 
-    function transGroupToList(result, value, key) {
+    function transGroupToRecord(result, value, key) {
         var date = key;
         var open = value[0][1] / 100;
         var high = _.max(value, "2")[2] / 100;
@@ -103,7 +239,7 @@ function generateDayLines(symbol) {
         .map(decodeTime)
         .sortBy("0")
         .groupBy(getDate)
-        .transform(transGroupToList, [])
+        .transform(transGroupToRecord, [])
         .value();
 }
 
@@ -153,7 +289,5 @@ exports.getBars = function(symbol) {
 }
 
 if (require.main == module) {
-    generateDayLines("000001");
-    // console.log(getDayLines());
-    // console.log(getDisplayData(getDayLines(symbol)));
+    merge();
 }

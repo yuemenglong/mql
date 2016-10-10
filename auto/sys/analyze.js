@@ -1,18 +1,7 @@
 var fs = require("fs");
 var _ = require("lodash");
 var resolveTrade = require("./common").resolveTrade;
-
-function fix(num) {
-    num = _.round(num, 2).toString();
-    var point = num.split(".")[1];
-    if (!point) {
-        return num + ".00";
-    } else if (point.length == 1) {
-        return num + "0";
-    } else {
-        return num;
-    }
-}
+var fix = require("./common").fix;
 
 function getNo() {
     return process.argv.slice(-1)[0].match(/\d+/)[0];

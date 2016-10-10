@@ -1,4 +1,5 @@
 var fs = require("fs");
+var _ = require("lodash");
 
 function resolveFileContent(fileName) {
     try {
@@ -31,4 +32,17 @@ exports.resolveTrade = function(fileName) {
 exports.resolve = function(fileName) {
     fileName = __dirname.split("Indicators")[0] + "/Files/" + fileName;
     return fileName;
+}
+
+
+exports.fix = function(num) {
+    num = _.round(num, 2).toString();
+    var point = num.split(".")[1];
+    if (!point) {
+        return num + ".00";
+    } else if (point.length == 1) {
+        return num + "0";
+    } else {
+        return num;
+    }
 }

@@ -2,3 +2,7 @@
 *.csv
 node_modules
 temp
+extract
+raw
+auto/stock
+log.txt
