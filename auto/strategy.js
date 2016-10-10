@@ -19,6 +19,10 @@ function Strategy(symbol) {
 module.exports = Strategy;
 
 if (require.main == module) {
-    var lines = execute(new Strategy("000002"));
-    analyze(lines);
+    var symbol = process.argv.slice(-1)[0];
+    if (!/\d{6}/.test(symbol)) {
+        throw new Error("Unknown Symbol: " + symbol);
+    }
+    var records = execute(new Strategy(symbol));
+    analyze(records);
 }
