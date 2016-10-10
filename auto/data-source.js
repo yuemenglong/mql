@@ -1,8 +1,10 @@
 var fs = require("fs");
 var _ = require("lodash");
 var moment = require("moment");
+var P = require("path");
 
 var DATE_BASE = new Date(0).valueOf();
+var RAW_DATA_LOC = "H:/A-stock";
 
 function log(data) {
     console.log(data);
@@ -21,7 +23,8 @@ function getTable() {
     return table;
 }
 
-function getRawLines(symbol) {
+function generateDayLines(symbol) {
+
     function getTable() {
         var nums = _.range(0, 10).map(function(i) {
             return [i, i];
@@ -34,6 +37,25 @@ function getRawLines(symbol) {
     }
 
     var table = getTable();
+
+    function mergeRawLines() {
+        var lines = fs.readdirSync(RAW_DATA_LOC).map(function(dir) {
+            var dirPath = P.resolve(RAW_DATA_LOC, dir);
+            var stat = fs.statSync(dirPath);
+            if (stat.isDirectory()) {
+                return fs.readdirSync(dirPath).map(function(fileName) {
+                    if (fileName.slice(0, 6) != symbol) {
+                        return [];
+                    }
+                    var path = P.resolve(dirPath, fileName);
+                    return fs.readFileSync(path).toString().match(/.+/gm);
+                })
+            } else {
+                return [];
+            }
+        })
+        return _.flattenDeep(lines);
+    }
 
     function decodeLine(line) {
         var items = line.split(",");
@@ -74,9 +96,8 @@ function getRawLines(symbol) {
         result.push([date, open, high, low, close, volumn]);
     }
 
-
-    var lines = fs.readFileSync("000001.2001").toString().match(/.+/gm);
-    return _(lines.slice(1))
+    return _(mergeRawLines().slice(0, 10))
+        .thru(log)
         .map(decodeLine)
         .filter(_.isObject)
         .map(decodeTime)
@@ -86,7 +107,7 @@ function getRawLines(symbol) {
         .value();
 }
 
-function getExportLines(symbol) {
+function getDayLines(symbol) {
     var path = __dirname.split("Indicators")[0] + `Files/${symbol}.day.csv`;
     return fs.readFileSync(path).toString().match(/.+/gm).map(line => line.split(",").map((item, i) => i < 2 ? item.split(" ")[0] : _.round(item, 2)));
 }
@@ -128,11 +149,11 @@ function getDisplayData(lines) {
 }
 
 exports.getBars = function(symbol) {
-    // return getDisplayData(getRawLines());
-    return getDisplayData(getExportLines(symbol));
+    return getDisplayData(getDayLines(symbol));
 }
 
 if (require.main == module) {
-    // console.log(getExportLines());
-    console.log(getDisplayData(getExportLines(symbol)));
+    generateDayLines("000001");
+    // console.log(getDayLines());
+    // console.log(getDisplayData(getDayLines(symbol)));
 }

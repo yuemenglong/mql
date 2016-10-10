@@ -68,15 +68,15 @@ public:
 
 		return 0;
 	}
-	int order_show(order_t order){
+	int order_show(order_t& order){
 		string lineName = PREFIX + str(order.ticket);
 		ObjectDelete(lineName);
-		if(order.status == "OPEN"){
+		if(order.status == OPEN){
 			HLine line(lineName);
 			line.set_color(clrLime);
 			line.set_price(order.open);
 			line.show();
-		}else if(order.status == "CLOSE"){
+		}else if(order.status == CLOSE){
 			Line line(lineName);
 			line.set_from(order.open_time, order.open);
 			line.set_to(order.close_time, order.close);
@@ -84,6 +84,7 @@ public:
 			line.set_width(2);
 			line.show();
 		}
+		return 0;
 	}
 	int order_delete_last(){
 		if(_order_pos == 0){
@@ -132,8 +133,8 @@ public:
 			_orders[_order_pos].close_time = file.read_time();
 			_orders[_order_pos].open = file.read_double();
 			_orders[_order_pos].close = file.read_double();
-			_orders[_order_pos].volumn = file.read_int();
-			_orders[_order_pos].status = file.read_int();
+			_orders[_order_pos].volumn = file.read_integer();
+			_orders[_order_pos].status = file.read_integer();
 			order_show(_orders[_order_pos]);
 			_order_pos++;
 		}

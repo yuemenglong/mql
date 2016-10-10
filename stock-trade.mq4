@@ -52,6 +52,14 @@ public:
 		order_save();
 		log("Save Trade Succ");
 	}
+	void load(){
+		order_load();
+		log("Load Trade Succ");
+	}
+	void clear(){
+		_order = -1;		
+		order_clear();
+	}
 	void show_label(){
 		string mode = _auto ? " [AUTO]" : " [MANUAL]";
 		_label.set_text(TEXT + mode);
@@ -72,7 +80,7 @@ public:
 		}
 		//special case
 		if(_order != -1 && Close[0] < 0.8 * Close[1]){
-			orderClose(_order, Close[1]);
+			order_close(_order, Close[1]);
 			_order = -1;
 			return;
 		}
@@ -91,11 +99,13 @@ public:
 		}else if(key == 68){//delete
 			delete_last();
 		}else if(key == 82){//clear
-			order_clear();
+			clear();
 		}else if(key == 77){//switch mode
 			switch_mode();
 		}else if(key == 83){//save
 			save();
+		}else if(key == 76){//save
+			load();
 		}else if(key == 65){//analyze
 			analyze();
 		}
