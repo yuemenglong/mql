@@ -1,6 +1,7 @@
 var Auto = require("./sys/auto");
 var execute = require("./sys/execute");
-var analyze = require("./sys/analyze");
+var stat = require("./sys/analyze").stat;
+var print = require("./sys/analyze").print;
 var _ = require("lodash");
 
 //6日均线上穿18日均线
@@ -25,5 +26,5 @@ if (require.main == module) {
         throw new Error("Unknown Symbol: " + symbol);
     }
     var records = execute(new Strategy(symbol));
-    analyze(records);
+    print(stat(records));
 }

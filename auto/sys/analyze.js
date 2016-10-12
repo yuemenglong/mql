@@ -38,11 +38,7 @@ function getRawData() {
     return data;
 }
 
-function analyze(records) {
-    // var timeMap = getRawData().reduce(function(acc, item) {
-    //     acc[item.time] = item;
-    //     return acc;
-    // }, {});
+function stat(records) {
     if (!records) {
         console.log("No Order");
         return;
@@ -58,43 +54,27 @@ function analyze(records) {
         acc = Math.floor(acc * close / open);
         var end = acc;
         var profit = fix((end - start) / start * 100);
-        // var ema = timeMap[time].ema[108];
-        var info = [openTime, closeTime, open, close, start, end, profit,
-            // open > ema, end > start
-        ].join("\t");
-        console.log(info);
+        // var info = [openTime, closeTime, open, close, start, end, profit].join("\t");
+        // console.log(info);
         return { openTime, closeTime, open, close, start, end, profit };
     }).filter(o => !!o);
-
-    var winCount = result.filter(item => item.profit > 0).length;
-    var content = result.map(item => _.values(item).join(",")).join("\n");
-    fs.writeFileSync(resolve("analyze.csv"), content);
-    console.log("Win Rate", winCount, result.length, winCount / result.length * 100);
-
-    // var upper = hist.filter(function(item) {
-    //     return item.open > timeMap[item.time].ema[108]
-    // });
-    // var upperWinCount = upper.filter(item => item.profit > 0).length;
-    // var upperLossCount = upper.filter(item => item.profit < 0).length;
-    // var upperWinAvg = upper.filter(item => item.profit > 0).reduce((acc, item) => acc + item.profit, 0) / upperWinCount;
-    // var upperLossAvg = upper.filter(item => item.profit < 0).reduce((acc, item) => acc - item.profit, 0) / upperLossCount;
-    // console.log("Upper", upper.length);
-    // console.log("Upper Win Rate", upperWinCount, upperWinCount / upper.length * 100);
-    // console.log("Upper Win/Loss ", upperWinAvg, upperLossAvg, upperWinAvg / upperLossAvg * 100);
-
-    // var lower = hist.filter(function(item) {
-    //     return item.open < timeMap[item.time].ema[108]
-    // });
-    // var lowerWinCount = lower.filter(item => item.profit > 0).length;
-    // var lowerLossCount = lower.filter(item => item.profit < 0).length;
-    // var lowerWinAvg = lower.filter(item => item.profit > 0).reduce((acc, item) => acc + item.profit, 0) / lowerWinCount;
-    // var lowerLossAvg = lower.filter(item => item.profit < 0).reduce((acc, item) => acc - item.profit, 0) / lowerLossCount;
-    // console.log("Lower", lower.length);
-    // console.log("Lower Win Rate", lowerWinCount, lowerWinCount / lower.length * 100);
-    // console.log("Upper Win/Loss ", lowerWinAvg, lowerLossAvg, lowerWinAvg / lowerLossAvg * 100);
+    return result;
 }
 
-module.exports = analyze;
+function print(result) {
+    result.map(function(r) {
+        var info = [r.openTime, r.closeTime, r.open, r.close, r.start, r.end, r.profit].join("\t");
+        console.log(info);
+    })
+    var winCount = result.filter(item => item.profit > 0).length;
+    console.log("Win Rate", winCount, result.length, winCount / result.length * 100);
+    var content = result.map(item => _.values(item).join(",")).join("\n");
+    fs.writeFileSync(resolve("stat.csv"), content);
+}
+
+
+exports.stat = stat;
+exports.print = print;
 
 // ShellExecuteA(hWnd, "open", "node", "analyze -- 000001.trade.csv", "D:/workspace/nodejs/mql/auto/", 1);
 if (require.main == module) {
@@ -103,7 +83,7 @@ if (require.main == module) {
         console.log("No Trade Record");
     } else {
         var records = lines.map(line => line.split(","));
-        analyze(records);
+        print(stat(records));
     }
     if (process.argv.indexOf("--") >= 0) {
         setTimeout(_.noop, 10000000);

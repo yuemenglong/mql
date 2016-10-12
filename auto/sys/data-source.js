@@ -230,25 +230,27 @@ function getBarsFromRecords(records) {
         item.diff = item.ema[12] - item.ema[26];
     }
 
-    function attachEma(records) {
-        records.reduce(ema("close", 6), 0);
-        records.reduce(ema("close", 12), 0);
-        records.reduce(ema("close", 18), 0);
-        records.reduce(ema("close", 26), 0);
-        records.reduce(ema("close", 108), 0);
-
+    function attachIndicator(records) {
+        _.range(1, 40).map(function(i) {
+            records.reduce(ema("close", i), 0);
+        })
         records.map(diff);
         records.reduce(ema("diff", 9, "dea"), 0);
         return records;
     }
     return _(records)
         .map(toObj)
-        .thru(attachEma)
+        .thru(attachIndicator)
         .value();
 }
 
+var CACHE = {};
+
 function getBars(symbol) {
-    return getBarsFromRecords(getDayRecords(symbol));
+    if (!CACHE[symbol]) {
+        CACHE[symbol] = getBarsFromRecords(getDayRecords(symbol));
+    }
+    return CACHE[symbol];
 }
 
 exports.getBars = getBars;
