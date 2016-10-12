@@ -4,15 +4,18 @@ var stat = require("./sys/analyze").stat;
 var print = require("./sys/analyze").print;
 var _ = require("lodash");
 
-//6日均线上穿18日均线
+var short = 20;
+var long = 100;
+
+//短期均线上穿长期均线
 function Strategy(symbol) {
     _.merge(this, new Auto(symbol));
     this.exec = function() {
         var bar = this.bar(0);
-        if (bar.ema[6] > bar.ema[18] && !this.autoOpened()) {
+        if (bar.ema[short] > bar.ema[long] && !this.autoOpened()) {
             this.autoBuy();
         }
-        if (bar.ema[6] < bar.ema[18] && this.autoOpened()) {
+        if (bar.ema[short] < bar.ema[long] && this.autoOpened()) {
             this.autoClose();
         }
     }

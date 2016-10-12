@@ -231,7 +231,7 @@ function getBarsFromRecords(records) {
     }
 
     function attachIndicator(records) {
-        _.range(1, 40).map(function(i) {
+        _.range(1, 200).map(function(i) {
             records.reduce(ema("close", i), 0);
         })
         records.map(diff);

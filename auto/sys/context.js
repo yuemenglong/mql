@@ -46,6 +46,9 @@ function Context(symbol) {
     this.time = function(n) {
         return this.bar(n).time;
     }
+    this.volumn = function(n) {
+        return this.bar(n).volumn;
+    }
     this.hasNext = function() {
         return this._pos < this._bars.length;
     }

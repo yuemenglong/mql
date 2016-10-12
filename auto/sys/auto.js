@@ -10,19 +10,21 @@ function Auto(symbol) {
         return this._order != -1;
     }
     this.autoBuy = function() {
-        if (this.autoOpened()) {
+        if (this.autoOpened() || this.volumn() == 0) {
             console.log("Can't Buy");
-            return;
+            return -1;
         }
         this._order = this.orderBuy();
+        return 0;
     }
     this.autoClose = function() {
-        if (!this.autoOpened()) {
+        if (!this.autoOpened() || this.volumn() == 0) {
             console.log("Can't Close");
-            return;
+            return -1;
         }
         this.orderClose(this._order);
         this._order = -1;
+        return 0;
     }
     this.onNewBar = function() {
         var bar = this.bar(0);
