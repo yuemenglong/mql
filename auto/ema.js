@@ -59,11 +59,11 @@ function merge() {
         })
     })
     var content = _.flattenDeep(res).join("\n");
-    fs.writeFileSync("ema.txt", content);
+    fs.writeFileSync("result/ema.txt", content);
 }
 
 function analyze() {
-    var lines = fs.readFileSync("ema.txt").toString().match(/.+/gm);
+    var lines = fs.readFileSync("result/ema.txt").toString().match(/.+/gm);
     var result = _(lines)
         .map(l => l.split(","))
         .sortBy("2")
