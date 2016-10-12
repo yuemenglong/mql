@@ -3,14 +3,15 @@ var execute = require("./sys/execute");
 var analyze = require("./sys/analyze");
 var _ = require("lodash");
 
+//macd金叉
 function Strategy(symbol) {
     _.merge(this, new Auto(symbol));
     this.exec = function() {
         var bar = this.bar(0);
-        if (bar.dif > bar.dea && !this.autoOpened()) {
+        if (bar.diff > bar.dea && !this.autoOpened()) {
             this.autoBuy();
         }
-        if (bar.dif < bar.dea && this.autoOpened()) {
+        if (bar.diff < bar.dea && this.autoOpened()) {
             this.autoClose();
         }
     }

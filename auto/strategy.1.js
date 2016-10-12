@@ -3,6 +3,7 @@ var execute = require("./sys/execute");
 var analyze = require("./sys/analyze");
 var _ = require("lodash");
 
+//6日均线上穿18日均线
 function Strategy(symbol) {
     _.merge(this, new Auto(symbol));
     this.exec = function() {

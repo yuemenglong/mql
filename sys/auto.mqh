@@ -8,7 +8,7 @@
 #include "trade.mqh";
 
 string TEXT1 = "Buy(B)/Close(C)/Delete(D)/Clear(R)/Mode(M)";
-string TEXT2 = "Save(S)/Load(L)/Analyze(A)/Import(I)";
+string TEXT2 = "Save(S)/Load(L/O)/Analyze(A)/Import(I)";
 
 class Auto : public Trade
 {
@@ -63,14 +63,6 @@ private:
 		order_delete_last();
 		_order = -1;
 	}
-	void save(){
-		order_save();
-		log("Save Trade Succ");
-	}
-	void load(){
-		order_load();
-		log("Load Trade Succ");
-	}
 	void clear(){
 		_order = -1;		
 		order_clear();
@@ -86,7 +78,7 @@ private:
 		_auto = !_auto;
 	}
 	void analyze(){
-		save();
+		order_save();
 		string param = "analyze -- " + Symbol();
 		Process::node(param);
 	}
@@ -118,9 +110,11 @@ public:
 		}else if(key == 77){//switch mode
 			switch_mode();
 		}else if(key == 83){//save
-			save();
+			order_save();
 		}else if(key == 76){//load
-			load();
+			order_load();
+		}else if(key == 79){//another
+			order_load_another();
 		}else if(key == 82){//clear
 			clear();
 		}else if(key == 65){//analyze

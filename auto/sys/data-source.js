@@ -198,69 +198,70 @@ function getDayRecords(symbol) {
     return fs.readFileSync(path).toString().match(/.+/gm).map(line => line.split(",").map((item, i) => i < 2 ? item.split(" ")[0] : _.round(item, 2)));
 }
 
-function getBars(lines) {
-    function toObj(line) {
+function getBarsFromRecords(records) {
+    function toObj(record) {
         return {
-            time: line[0],
-            open: line[1],
-            high: line[2],
-            low: line[3],
-            close: line[4],
-            volumn: line[5]
+            time: record[0],
+            open: record[1],
+            high: record[2],
+            low: record[3],
+            close: record[4],
+            volumn: record[5]
         };
     }
 
-    function ema(n) {
+    function ema(field, n, path) {
+        path = path || "ema." + n;
         return function(acc, item) {
             item.ema = item.ema || {};
             if (!acc) {
-                item.ema[n] = item.close;
+                var ema = item[field];
+                // item.ema[n] = item[field];
             } else {
-                item.ema[n] = (item.close * 2 + acc * (n - 1)) / (n + 1);
+                var ema = (item[field] * 2 + acc * (n - 1)) / (n + 1);
+                // item.ema[n] = (item[field] * 2 + acc * (n - 1)) / (n + 1);
             }
-            return item.ema[n];
+            _.set(item, path, ema);
+            return ema;
         }
     }
 
-    function macd(acc, item) {
-        var dif = item.ema[12] - item.ema[26];
-        if (!acc) {
-            var dea = dif;
-        } else {
-            var dea = acc * 0.8 + dif * 0.2;
-        }
-        item.dif = dif;
-        item.dea = dea;
-        return dea;
+    function diff(item) {
+        item.diff = item.ema[12] - item.ema[26];
     }
 
-    function attachEma(lines) {
-        lines.reduce(ema(6), 0);
-        lines.reduce(ema(12), 0);
-        lines.reduce(ema(18), 0);
-        lines.reduce(ema(26), 0);
-        lines.reduce(ema(108), 0);
+    function attachEma(records) {
+        records.reduce(ema("close", 6), 0);
+        records.reduce(ema("close", 12), 0);
+        records.reduce(ema("close", 18), 0);
+        records.reduce(ema("close", 26), 0);
+        records.reduce(ema("close", 108), 0);
 
-        lines.reduce(macd, 0);
-        return lines;
+        records.map(diff);
+        records.reduce(ema("diff", 9, "dea"), 0);
+        return records;
     }
-    return _(lines)
+    return _(records)
         .map(toObj)
         .thru(attachEma)
         .value();
 }
 
-exports.getBars = function(symbol) {
-    return getBars(getDayRecords(symbol));
+function getBars(symbol) {
+    return getBarsFromRecords(getDayRecords(symbol));
 }
 
+exports.getBars = getBars;
+
 if (require.main == module) {
+    var symbol = process.argv.slice(-1)[0];
+    if (!/\d{6}/.test(symbol)) {
+        throw new Error("Invalid Symbol: " + symbol);
+    }
     if (process.argv.indexOf("import") >= 0) {
-        var symbol = process.argv.slice(-1)[0];
-        if (!/\d{6}/.test(symbol)) {
-            throw new Error("Invalid Symbol: " + symbol);
-        }
         Import(symbol);
+    } else if (process.argv.indexOf("test") >= 0) {
+        console.log(getBars(symbol).slice(-10));
     } else {
         console.log("Unknown Command");
     }

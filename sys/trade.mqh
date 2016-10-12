@@ -68,7 +68,7 @@ public:
 
 		return 0;
 	}
-	int order_show(order_t& order){
+	int order_show(order_t& order, int clr = clrRed){
 		string lineName = PREFIX + str(order.ticket);
 		ObjectDelete(lineName);
 		if(order.status == OPEN){
@@ -80,7 +80,7 @@ public:
 			Line line(lineName);
 			line.set_from(order.open_time, order.open);
 			line.set_to(order.close_time, order.close);
-			line.set_color(clrRed);
+			line.set_color(clr);
 			line.set_width(2);
 			line.show();
 		}
@@ -120,9 +120,8 @@ public:
 		file.close();
 		return 0;
 	}
-	int order_load(){
-		order_clear();
-		string fileName = Symbol() + ".trade.csv";
+private:
+	int order_load(string fileName, int clr = clrRed){
 		File* file = new File(fileName);
 		if(!file.valid()){
 			return -1;
@@ -135,10 +134,20 @@ public:
 			_orders[_order_pos].close = file.read_double();
 			_orders[_order_pos].volumn = file.read_integer();
 			_orders[_order_pos].status = file.read_integer();
-			order_show(_orders[_order_pos]);
+			order_show(_orders[_order_pos], clr);
 			_order_pos++;
 		}
 		file.close();
 		return 0;
+	}
+public:
+	int order_load(){
+		order_clear();
+		string fileName = Symbol() + ".trade.csv";
+		return order_load(fileName);
+	}
+	int order_load_another(){
+		string fileName = Symbol() + ".trade.another.csv";
+		return order_load(fileName, clrBlue);
 	}
 };
