@@ -183,9 +183,9 @@ function Import(symbol) {
                 scanAndCopy(path);
             } else if (fileName.slice(0, 6) == symbol && /\.cz/.test(fileName)) {
                 var dest = P.resolve(importPath, fileName);
-                fs.createReadStream(path).pipe(fs.createWriteStream(dest)).on("finish", function() {
-                    console.log(path, dest);
-                })
+                var content = fs.readFileSync(path);
+                fs.writeFileSync(dest, content);
+                console.log(path, dest);
             }
         })
     }
@@ -263,7 +263,7 @@ if (require.main == module) {
     if (process.argv.indexOf("import") >= 0) {
         Import(symbol);
     } else if (process.argv.indexOf("test") >= 0) {
-        console.log(getBars(symbol).slice(-10));
+        console.log(getBars(symbol).slice(0, 100));
     } else {
         console.log("Unknown Command");
     }

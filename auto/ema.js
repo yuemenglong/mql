@@ -67,7 +67,7 @@ function analyze() {
     var result = _(lines)
         .map(l => l.split(","))
         .sortBy("2")
-        .slice(-20)
+        .slice(-100)
         .value();
     console.log(result);
 }
