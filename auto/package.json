@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "lodash": "^4.16.4",
-    "moment": "^2.15.1"
+    "moment": "^2.15.1",
+    "yy-fs": "^1.0.0"
   }
 }

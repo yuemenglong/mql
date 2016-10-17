@@ -39,9 +39,15 @@ function getRawData() {
 }
 
 function stat(records) {
-    if (!records) {
-        console.log("No Order");
-        return;
+    if (typeof records == "string") {
+        records = _(resolveTrade(records))
+            .thru(s => s.match(/.+/gm))
+            .map(l => l.split(','))
+            .value();
+    }
+    if (!records || !records.length) {
+        // console.log("No Order");
+        return records;
     }
 
     var acc = 10000;
@@ -62,6 +68,9 @@ function stat(records) {
 }
 
 function print(result) {
+    if (!result || !result.length) {
+        return;
+    }
     result.map(function(r) {
         var info = [r.openTime, r.closeTime, r.open, r.close, r.start, r.end, r.profit].join("\t");
         console.log(info);
@@ -72,19 +81,12 @@ function print(result) {
     fs.writeFileSync(resolve("stat.csv"), content);
 }
 
-
 exports.stat = stat;
 exports.print = print;
 
 // ShellExecuteA(hWnd, "open", "node", "analyze -- 000001.trade.csv", "D:/workspace/nodejs/mql/auto/", 1);
 if (require.main == module) {
-    var lines = resolveTrade(process.argv.slice(-1)[0]).match(/.+/gm);
-    if (!lines) {
-        console.log("No Trade Record");
-    } else {
-        var records = lines.map(line => line.split(","));
-        print(stat(records));
-    }
+    print(stat(process.argv.slice(-1)[0]));
     if (process.argv.indexOf("--") >= 0) {
         setTimeout(_.noop, 10000000);
     }
