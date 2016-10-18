@@ -4,8 +4,8 @@ var stat = require("./sys/analyze").stat;
 var print = require("./sys/analyze").print;
 var _ = require("lodash");
 
-var short = 5;
-var long = 120;
+var short = 6;
+var long = 18;
 
 //短期均线上穿长期均线
 function Strategy(symbol) {
