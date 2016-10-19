@@ -11,7 +11,7 @@ function Auto(symbol) {
     }
     this.autoBuy = function() {
         if (this.autoOpened() || this.volumn() == 0) {
-            console.log("Can't Buy");
+            // console.log("Can't Buy");
             return -1;
         }
         this._order = this.orderBuy();
@@ -19,7 +19,7 @@ function Auto(symbol) {
     }
     this.autoClose = function() {
         if (!this.autoOpened() || this.volumn() == 0) {
-            console.log("Can't Close");
+            // console.log("Can't Close");
             return -1;
         }
         this.orderClose(this._order);

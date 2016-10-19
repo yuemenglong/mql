@@ -7,7 +7,7 @@ function Context(symbol) {
     }
     this._symbol = symbol;
     this._pos = 0;
-    this._bars = getBars(symbol);
+    // this._bars = getBars(symbol);
 
     this.init = _.noop;
     this.deinit = _.noop;
@@ -16,10 +16,19 @@ function Context(symbol) {
 
     this.initialize = function() {
         this._pos = 0;
-        this.init();
+        return getBars(symbol).then(function(res) {
+            this._bars = res;
+            return this.init();
+        }.bind(this));
     }
     this.deinitialize = function() {
         this.deinit();
+    }
+    this.setBars = function(bars) {
+        this._bars = bars;
+    }
+    this.getBars = function() {
+        return this._bars;
     }
     this.symbol = function() {
         return this._symbol;

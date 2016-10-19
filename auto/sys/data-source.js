@@ -3,6 +3,9 @@ var _ = require("lodash");
 var moment = require("moment");
 var P = require("path");
 var cp = require("child_process");
+var MongoClient = require("mongodb").MongoClient;
+var ObjectId = require("mongodb").ObjectId;
+var Promise = require("bluebird");
 var fix = require("./common").fix;
 
 var DATE_BASE = new Date(0).valueOf();
@@ -13,6 +16,7 @@ var RAW = "../raw";
 var EXTRACT_DIST = "../extract";
 var OUTPUT_DIR = "../stock";
 var EXT = ".day.csv";
+var URL = "mongodb://localhost:27017/stock";
 
 function log(data) {
     console.log(data);
@@ -49,22 +53,22 @@ function extract() {
     })
 }
 
-function getStockMap() {
-    return _.chain(fs.readdirSync(EXTRACT_DIST)).reduce(function(acc, fileName) {
-        if (!/^\d{6}\./.test(fileName)) {
-            return acc;
-        }
-        var stock = fileName.split(".")[0];
-        acc[stock] = acc[stock] || [];
-        acc[stock].push(P.resolve(EXTRACT_DIST, fileName));
-        return acc;
-    }, {}).transform(function(result, value, key) {
-        result[key] = value.sort();
-    }, {}).value();
-}
-
 function merge() {
     var stockMap = getStockMap();
+
+    function getStockMap() {
+        return _.chain(fs.readdirSync(EXTRACT_DIST)).reduce(function(acc, fileName) {
+            if (!/^\d{6}\./.test(fileName)) {
+                return acc;
+            }
+            var stock = fileName.split(".")[0];
+            acc[stock] = acc[stock] || [];
+            acc[stock].push(P.resolve(EXTRACT_DIST, fileName));
+            return acc;
+        }, {}).transform(function(result, value, key) {
+            result[key] = value.sort();
+        }, {}).value();
+    }
 
     function getCharTable() {
         var nums = _.range(0, 10).map(function(i) {
@@ -193,6 +197,40 @@ function Import(symbol) {
     scanAndCopy(P.resolve(__dirname, RAW));
 }
 
+function importToMongo() {
+    var db = null;
+    var collection = null;
+
+    function singleFile(name) {
+        var path = P.resolve(__dirname, "../stock", name);
+        var symbol = name.match(/^\d{6}/)[0];
+        var records = fs.readFileSync(path).toString().match(/.+/gm).map(function(line) {
+            var items = line.split(",");
+            return {
+                symbol: symbol,
+                time: items[0],
+                open: items[1],
+                high: items[2],
+                low: items[3],
+                close: items[4],
+                volumn: items[5],
+            }
+        })
+        return collection.insertMany(records).then(function(res) {
+            console.log(symbol);
+        });
+    }
+    Promise.promisify(MongoClient.connect)(URL).then(function(res) {
+        db = Promise.promisifyAll(res);
+        collection = db.collection("day");
+        return Promise.each(fs.readdirSync(P.resolve(__dirname, "../stock")), singleFile);
+    }).catch(function(err) {
+        console.log(err.stack);
+    }).finally(function() {
+        return db.close();
+    }).done();
+}
+
 function getDayRecords(symbol) {
     var path = P.resolve(__dirname, `../stock/${symbol}.day.csv`);
     return fs.readFileSync(path).toString().match(/.+/gm).map(line => line.split(",").map((item, i) => i < 2 ? item.split(" ")[0] : _.round(item, 2)));
@@ -247,27 +285,82 @@ function getBarsFromRecords(records) {
 var CACHE = {};
 
 function getBars(symbol) {
-    if (!CACHE[symbol]) {
-        CACHE[symbol] = getBarsFromRecords(getDayRecords(symbol));
+    function ema(field, n, path) {
+        path = path || "ema." + n;
+        return function(acc, item) {
+            item.ema = item.ema || {};
+            if (!acc) {
+                var ema = item[field];
+                // item.ema[n] = item[field];
+            } else {
+                var ema = (item[field] * 2 + acc * (n - 1)) / (n + 1);
+                // item.ema[n] = (item[field] * 2 + acc * (n - 1)) / (n + 1);
+            }
+            _.set(item, path, ema);
+            return ema;
+        }
     }
-    return CACHE[symbol];
+
+    function diff(item) {
+        item.diff = item.ema[12] - item.ema[26];
+    }
+
+    function attachIndicator(bars) {
+        _.range(1, 200).map(function(i) {
+            bars.reduce(ema("close", i), 0);
+        })
+        bars.map(diff);
+        bars.reduce(ema("diff", 9, "dea"), 0);
+        return bars;
+    }
+    if (CACHE[symbol]) {
+        return Promise.resolve(CACHE[symbol]);
+    }
+    return getDB(function(db) {
+        return db.collection("day").find({ symbol: symbol }).toArray().then(function(bars) {
+            attachIndicator(bars);
+            CACHE[symbol] = bars;
+            return bars;
+        });
+    })
 }
 
-exports.getBars = getBars;
+function getDB(cb) {
+    var db = null;
+    return Promise.promisify(MongoClient.connect)(URL).then(function(res) {
+        db = Promise.promisifyAll(res);
+        return cb(db);
+    }).finally(function() {
+        db.close();
+    })
+}
 
-if (require.main == module) {
+function getSymbol() {
     var symbol = process.argv.slice(-1)[0];
     if (!/\d{6}/.test(symbol)) {
         throw new Error("Invalid Symbol: " + symbol);
     }
-    if (process.argv.indexOf("import") >= 0) {
-        Import(symbol);
-    } else if (process.argv.indexOf("test") >= 0) {
-        console.log(getBars(symbol).slice(0, 100));
-    } else {
-        console.log("Unknown Command");
-    }
-    if (process.argv.indexOf("--") >= 0) {
-        setTimeout(_.noop, 1000000);
-    }
+    return symbol;
+}
+
+exports.getBars = getBars;
+exports.getDB = getDB;
+
+if (require.main == module) {
+    attachEma();
+    // importToMongo();
+    // var symbol = process.argv.slice(-1)[0];
+    // if (!/\d{6}/.test(symbol)) {
+    //     throw new Error("Invalid Symbol: " + symbol);
+    // }
+    // if (process.argv.indexOf("import") >= 0) {
+    //     Import(symbol);
+    // } else if (process.argv.indexOf("test") >= 0) {
+    //     console.log(getBars(symbol).slice(0, 100));
+    // } else {
+    //     console.log("Unknown Command");
+    // }
+    // if (process.argv.indexOf("--") >= 0) {
+    //     setTimeout(_.noop, 1000000);
+    // }
 }

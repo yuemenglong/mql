@@ -83,7 +83,7 @@ private:
 		Process::node(param);
 	}
 	void import(){
-		string param = "data-source import -- " + Symbol();
+		string param = "data-source import " + Symbol();
 		Process::node(param);
 	}
 public:

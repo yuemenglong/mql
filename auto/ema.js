@@ -7,14 +7,61 @@ var os = require('os');
 var P = require("path");
 var fs = require("yy-fs");
 var cp = require("child_process");
+var getBars = require("./sys/data-source").getBars;
+var getDB = require("./sys/data-source").getDB;
+var Recorder = require("./sys/recorder");
+var Promise = require("bluebird");
 
+function runEmaStrategy(symbol, short, long) {
+    getBars(symbol).then(function(bars) {
+        return _(bars).groupBy(bar => bar.time.match(/^\d{4}/)[0]).value();
+    }).then(function(groups) {
+        var recordsList = _.range(2001, 2017).map(function(year) {
+            if (!groups[year] || !groups[year].length) {
+                return;
+            }
+            var recorder = new Recorder();
+            recorder = groups[year].reduce(function(recorder, bar) {
+                if (!recorder.opened() && bar.ema[short] > bar.ema[long]) {
+                    recorder.buy(bar);
+                } else if (recorder.opened() && bar.ema[short] < bar.ema[long]) {
+                    recorder.sell(bar);
+                }
+                return recorder;
+            }, recorder);
+            recorder.opened() && recorder.sell(groups[year].slice(-1)[0]);
+            return recorder.output().map(function(record) {
+                record.symbol = symbol;
+                record.year = year;
+                record.short = short;
+                record.long = long;
+                return record;
+            })
+        }).filter(o => !!o);
+        recordsList = _.flatten(recordsList);
+        // console.log(recordsList);
+        return getDB(function(db) {
+            return db.collection("ema").insertMany(recordsList);
+        })
+    })
+}
 
 //测试各种ema的情况
 function createEmaStrategy(short, long) {
-    function Strategy(symbol) {
+    function Strategy(symbol, year) {
         _.merge(this, new Auto(symbol));
+        this.init = function() {
+            var bars = this.getBars().filter(l => l.time.startWith(symbol.toString()));
+        }
         this.exec = function() {
             var bar = this.bar(0);
+            var year = parseInt(bar.time.match(/^\d{4}/)[0]);
+            if (year > 2010) {
+                if (this.autoOpened()) {
+                    this.autoClose();
+                }
+                return;
+            }
             if (bar.ema[short] > bar.ema[long] && !this.autoOpened()) {
                 this.autoBuy();
             }
@@ -102,40 +149,47 @@ function analyze() {
 
 function master() {
     var symbol = getSymbol();
-    var SHORT = 80;
-    var LONG = 160;
-    var result = _.range(1, SHORT).map(function(short) {
-        return _.range(1, LONG).map(function(long) {
-            if (short * 2 > long) {
-                return;
-            }
-            if (short * 60 < long) {
-                return;
-            }
-            var path = getResultPath(symbol, short, long);
-            try {
-                fs.statSync(path);
-                return;
-            } catch (ex) {
-                return { short, long };
-            }
-        }).filter(o => !!o);
-    })
-    var cpuNo = os.cpus().length - 1;
-    result = _.flatten(result);
-    var group = _.ceil(result.length / cpuNo);
-    var tasksList = _.chunk(result, group);
-    tasksList.map(function(tasks, i) {
-        var args = {
-            symbol: symbol,
-            tasks: tasks,
-            output: `ema.${i}.txt`,
-            idx: i,
-        }
-        args = JSON.stringify(args);
-        var child = cp.spawn("node", ["ema", "worker", args], { stdio: 'inherit' })
-        child.on("exit", function() {
-            console.log("Finish " + i);
+    var SHORT_MIN = 6;
+    var SHORT_MAX = 7;
+    var LONG_MIN = 18;
+    var LONG_MAX = 20;
+    return Promise.try(function() {
+        var pairs = _.range(SHORT_MIN, SHORT_MAX).map(function(short) {
+            return _.range(LONG_MIN, LONG_MAX).map(function(long) {
+                if (short * 2 > long) {
+                    return;
+                }
+                if (short * 60 < long) {
+                    return;
+                }
+                return [short, long];
+            }).filter(o => !!o);
+        })
+        pairs = _.flatten(pairs);
+        return Promise.filter(pairs, function(pair) {
+            return getDB(function(db) {
+                return db.collection("ema").count({ symbol: symbol, short: pair[0], long: pair[1] }).then(function(count) {
+                    return count == 0;
+                })
+            });
+        }).then(function(pairs) {
+            console.log(pairs);
+            var cpuNo = os.cpus().length - 1;
+            var group = _.ceil(pairs.length / cpuNo);
+            var tasksList = _.chunk(pairs, group);
+            tasksList.map(function(tasks, i) {
+                var args = {
+                    symbol: symbol,
+                    tasks: tasks,
+                    output: `ema.${i}.txt`,
+                    idx: i,
+                }
+                args = JSON.stringify(args);
+                var child = cp.spawn("node", ["ema", "worker", args], { stdio: 'inherit' })
+                child.on("exit", function() {
+                    console.log("Finish " + i);
+                })
+            })
         })
     });
 }
@@ -143,25 +197,34 @@ function master() {
 function worker() {
     var json = process.argv.slice(-1)[0];
     var args = JSON.parse(json);
-    // console.log(args);
-    var result = args.tasks.map(function(task, i) {
-        var short = task.short;
-        var long = task.long;
+    return Promise.each(args.tasks, function(task, i) {
+        var short = task[0];
+        var long = task[1];
         var symbol = args.symbol;
 
-        var result = getEmaStat(symbol, short, long);
-        // var Strategy = createEmaStrategy(short, long);
-        // var records = execute(new Strategy(symbol));
-        // var result = stat(records);
-        var end = result.slice(-1)[0].end;
-        console.log(args.idx, i, "/", args.tasks.length, short, long, end);
-        // return [short, long, end];
+        console.log(args.idx, i, "/", args.tasks.length, short, long);
+        return runEmaStrategy(symbol, short, long);
     });
+    // console.log(args);
+    // var result = args.tasks.map(function(task, i) {
+    //     var short = task[0];
+    //     var long = task[1];
+    //     var symbol = args.symbol;
+
+    //     var result = getEmaStat(symbol, short, long);
+    //     // var Strategy = createEmaStrategy(short, long);
+    //     // var records = execute(new Strategy(symbol));
+    //     // var result = stat(records);
+    //     var end = result.slice(-1)[0].end;
+    //     console.log(args.idx, i, "/", args.tasks.length, short, long, end);
+    //     // return [short, long, end];
+    // });
     // var content = result.map(o => o.join(",")).join("\n");
     // fs.writeFileSync(args.output, content);
 }
 
 if (require.main == module) {
+    // runEmaStrategy("000001", 6, 18);
     if (process.argv.indexOf("master") >= 0) {
         return master();
     }

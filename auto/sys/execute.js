@@ -1,8 +1,15 @@
+var Promise = require("bluebird");
+
 module.exports = function(trade) {
-    trade.initialize();
-    while (trade.hasNext()) {
-        trade.next();
-    }
-    trade.deinitialize();
-    return trade.output();
+    return Promise.try(function() {
+        return trade.initialize();
+    }).then(function() {
+        while (trade.hasNext()) {
+            trade.next();
+        }
+    }).then(function() {
+        return trade.deinitialize();
+    }).then(function() {
+        return trade.output();
+    });
 }

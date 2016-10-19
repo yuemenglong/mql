@@ -28,6 +28,9 @@ if (require.main == module) {
     if (!/\d{6}/.test(symbol)) {
         throw new Error("Unknown Symbol: " + symbol);
     }
-    var records = execute(new Strategy(symbol));
-    print(stat(records));
+    // var records = execute(new Strategy(symbol));
+    // print(stat(records));
+    execute(new Strategy(symbol)).then(function(records) {
+        print(stat(records));
+    })
 }
