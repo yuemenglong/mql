@@ -4,8 +4,8 @@ var stat = require("./sys/analyze").stat;
 var print = require("./sys/analyze").print;
 var _ = require("lodash");
 
-var short = 6;
-var long = 18;
+var short = 1;
+var long = 2;
 
 //短期均线上穿长期均线
 function Strategy(symbol) {
@@ -32,5 +32,7 @@ if (require.main == module) {
     // print(stat(records));
     execute(new Strategy(symbol)).then(function(records) {
         print(stat(records));
+        var content = records.map(r => r.join(",")).join("\n");
+        require("yy-fs").writeFileSync("2.txt", content);
     })
 }

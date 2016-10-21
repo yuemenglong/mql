@@ -12,8 +12,53 @@ var getDB = require("./sys/data-source").getDB;
 var Recorder = require("./sys/recorder");
 var Promise = require("bluebird");
 
+var SHORT_MIN = 1;
+var SHORT_MAX = 30;
+var LONG_MIN = 1;
+var LONG_MAX = 120;
+
+var EMA = "ema";
+var EMA_RES = "ema.res";
+
+function log(data) {
+    console.log(data);
+    return data;
+}
+
+function Kit() {
+    this.log = function(data) {
+        console.log(data);
+        return data;
+    }
+    this.writeFileSync = function(path, arr) {
+        var content = arr.map(function(line) {
+            return _.values(line).join(",");
+        }).join("\n");
+        fs.writeFileSync(path, content);
+    }
+    this.multiReduce = function(field) {
+        return function(acc, item) {
+            return acc * item[field];
+        }
+    }
+    this.ratioReduce = function(upper, lower) {
+        return function(acc, item) {
+            return acc * item[upper] / item[lower];
+        }
+    }
+    this.getSymbol = function() {
+        var symbol = process.argv.slice(-1)[0];
+        if (!/\d{6}/.test(symbol)) {
+            throw new Error("Invalid Symbol: " + symbol);
+        }
+        return symbol;
+    }
+}
+
+var kit = new Kit();
+
 function runEmaStrategy(symbol, short, long) {
-    getBars(symbol).then(function(bars) {
+    return getBars(symbol).then(function(bars) {
         return _(bars).groupBy(bar => bar.time.match(/^\d{4}/)[0]).value();
     }).then(function(groups) {
         var recordsList = _.range(2001, 2017).map(function(year) {
@@ -21,15 +66,25 @@ function runEmaStrategy(symbol, short, long) {
                 return;
             }
             var recorder = new Recorder();
-            recorder = groups[year].reduce(function(recorder, bar) {
+            var bars = groups[year];
+            bars.map(function(bar, i) {
+                if (recorder.opened() && recorder.isInvalid(bar, bars[i - 1])) {
+                    recorder.sell(bars[i - 1]);
+                    return;
+                }
                 if (!recorder.opened() && bar.ema[short] > bar.ema[long]) {
                     recorder.buy(bar);
                 } else if (recorder.opened() && bar.ema[short] < bar.ema[long]) {
                     recorder.sell(bar);
                 }
-                return recorder;
-            }, recorder);
-            recorder.opened() && recorder.sell(groups[year].slice(-1)[0]);
+            });
+            if (recorder.opened()) {
+                if (groups[year + 1]) {
+                    recorder.sell(groups[year + 1][0])
+                } else {
+                    recorder.sell(bars.slice(-1)[0])
+                }
+            }
             return recorder.output().map(function(record) {
                 record.symbol = symbol;
                 record.year = year;
@@ -38,10 +93,27 @@ function runEmaStrategy(symbol, short, long) {
                 return record;
             })
         }).filter(o => !!o);
+        var emaResultList = recordsList.map(function(records) {
+            if (!records || !records.length) {
+                return;
+            }
+            var result = records.reduce(function(acc, item) {
+                return acc * item.close / item.open;
+            }, 1);
+            return {
+                symbol: records[0].symbol,
+                year: records[0].year,
+                short: records[0].short,
+                long: records[0].long,
+                res: result,
+            }
+        }).filter(o => !!o);
         recordsList = _.flatten(recordsList);
         // console.log(recordsList);
         return getDB(function(db) {
-            return db.collection("ema").insertMany(recordsList);
+            return db.collection(EMA).insertMany(recordsList).then(function() {
+                return db.collection(EMA_RES).insertMany(emaResultList);
+            });
         })
     })
 }
@@ -111,48 +183,94 @@ function readFileSync(path) {
     return fs.readFileSync(path).toString().match(/.+/gm).map(l => l.split(","));
 }
 
-function getSymbol() {
-    var symbol = process.argv.slice(-1)[0];
-    if (!/\d{6}/.test(symbol)) {
-        throw new Error("Invalid Symbol: " + symbol);
-    }
-    return symbol;
-}
 
 function getEmaStat(symbol, short, long) {
     return stat(getEmaResult(symbol, short, long));
 }
 
-function analyze() {
-    var symbol = getSymbol();
-    var dir = P.resolve(__dirname, `ema/${symbol}`);
-    var result = fs.readdirSync(dir).map(function(fileName) {
-        var path = P.resolve(dir, fileName);
-        var match = fileName.match(/\d+\.(\d+)-(\d+).csv/);
-        var short = match[1];
-        var long = match[2];
-        var records = readFileSync(path);
-        var result = stat(records);
-        var end = result.slice(-1)[0].end;
-        return { short, long, end };
+function analyzeByYear(symbol, start, end) {
+    return getDB(function(db) {
+        return db.collection(EMA_RES).find({ symbol: symbol, year: { $gte: start, $lte: end } }).toArray();
+    }).then(function(res) {
+        //symbol, short, long, year, res
+        var result = _(res).groupBy(o => [o.short, o.long].join("_"))
+            .transform(function(res, value, key) {
+                var obj = { short: value[0].short, long: value[0].long };
+                obj.res = value.reduce((acc, item) => acc * item.res, 1);
+                res.push(obj);
+            }, []).sortBy("res").reverse().slice(0, 100).value();
+        console.log(result);
     });
-    // var lines = fs.readFileSync("result/ema.txt").toString().match(/.+/gm);
-    var result = _(result)
-        .sortBy("end")
-        .reverse()
-        // .slice(-100)
-        .value();
-    console.log(result.slice(0, 100));
-    var content = result.map(o => _.values(o).join(",")).join("\n");
-    fs.writeFileSync(P.resolve(__dirname, `ema/${symbol}.txt`), content);
+}
+
+function analyze() {
+    var symbol = kit.getSymbol();
+    return analyzeByYear(symbol, 2001, 2016);
+}
+
+function getResult(symbol, short, long, start, end) {
+    return getDB(function(db) {
+        return db.collection(EMA_RES).find({ symbol: symbol, short: short, long: long, year: { $gte: start, $lte: end } }).toArray().then(function(res) {
+            return res.reduce(kit.multiReduce("res"), 1);
+        }).then(function(res) {
+            console.log(res);
+            return res;
+        })
+    })
+}
+
+function byYear() {
+    var start = process.argv.slice(-3)[0];
+    var end = process.argv.slice(-3)[1];
+    var re = /\d{4}/;
+    if (!re.test(start) || !re.test(end)) {
+        throw new Error("Invalid Year");
+    }
+    var symbol = kit.getSymbol();
+    return analyzeByYear(symbol, parseInt(start), parseInt(end));
+}
+
+function result() {
+    var start = process.argv.slice(-5)[2];
+    var end = process.argv.slice(-5)[3];
+    var re = /\d{4}/;
+    if (!re.test(start) || !re.test(end)) {
+        throw new Error("Invalid Year");
+    }
+    var short = process.argv.slice(-5)[0];
+    var long = process.argv.slice(-5)[1];
+    var re = /\d{1,3}/;
+    if (!re.test(short) || !re.test(long)) {
+        throw new Error("Invalid Year");
+    }
+    var symbol = kit.getSymbol();
+    return getResult(symbol, parseInt(short), parseInt(long), parseInt(start), parseInt(end));
+}
+
+function stable() {
+    var symbol = kit.getSymbol();
+    return getDB(function(db) {
+        return db.collection(EMA_RES).find({ symbol: symbol }).toArray();
+    }).then(function(res) {
+        var result = _(res).groupBy(o => [o.short, o.long].join("_"))
+            .transform(function(res, value, key) {
+                var obj = {
+                    short: value[0].short,
+                    long: value[0].long,
+                }
+                obj.win = value.reduce(function(acc, item) {
+                    return acc + (item.res > 1 ? 1 : 0);
+                }, 0);
+                res.push(obj);
+            }, []).sortBy("win").reverse().slice(0, 100).value();
+        console.log(result);
+    })
+
 }
 
 function master() {
-    var symbol = getSymbol();
-    var SHORT_MIN = 6;
-    var SHORT_MAX = 7;
-    var LONG_MIN = 18;
-    var LONG_MAX = 20;
+    var symbol = kit.getSymbol();
+
     return Promise.try(function() {
         var pairs = _.range(SHORT_MIN, SHORT_MAX).map(function(short) {
             return _.range(LONG_MIN, LONG_MAX).map(function(long) {
@@ -166,12 +284,12 @@ function master() {
             }).filter(o => !!o);
         })
         pairs = _.flatten(pairs);
-        return Promise.filter(pairs, function(pair) {
-            return getDB(function(db) {
-                return db.collection("ema").count({ symbol: symbol, short: pair[0], long: pair[1] }).then(function(count) {
+        return getDB(function(db) {
+            return Promise.filter(pairs, function(pair) {
+                return db.collection(EMA).count({ symbol: symbol, short: pair[0], long: pair[1] }).then(function(count) {
                     return count == 0;
                 })
-            });
+            })
         }).then(function(pairs) {
             console.log(pairs);
             var cpuNo = os.cpus().length - 1;
@@ -181,7 +299,7 @@ function master() {
                 var args = {
                     symbol: symbol,
                     tasks: tasks,
-                    output: `ema.${i}.txt`,
+                    // output: `ema.${i}.txt`,
                     idx: i,
                 }
                 args = JSON.stringify(args);
@@ -201,30 +319,13 @@ function worker() {
         var short = task[0];
         var long = task[1];
         var symbol = args.symbol;
-
-        console.log(args.idx, i, "/", args.tasks.length, short, long);
-        return runEmaStrategy(symbol, short, long);
+        return runEmaStrategy(symbol, short, long).then(function() {
+            console.log(args.idx, i, "/", args.tasks.length, short, long);
+        });
     });
-    // console.log(args);
-    // var result = args.tasks.map(function(task, i) {
-    //     var short = task[0];
-    //     var long = task[1];
-    //     var symbol = args.symbol;
-
-    //     var result = getEmaStat(symbol, short, long);
-    //     // var Strategy = createEmaStrategy(short, long);
-    //     // var records = execute(new Strategy(symbol));
-    //     // var result = stat(records);
-    //     var end = result.slice(-1)[0].end;
-    //     console.log(args.idx, i, "/", args.tasks.length, short, long, end);
-    //     // return [short, long, end];
-    // });
-    // var content = result.map(o => o.join(",")).join("\n");
-    // fs.writeFileSync(args.output, content);
 }
 
 if (require.main == module) {
-    // runEmaStrategy("000001", 6, 18);
     if (process.argv.indexOf("master") >= 0) {
         return master();
     }
@@ -233,5 +334,14 @@ if (require.main == module) {
     }
     if (process.argv.indexOf("analyze") >= 0) {
         return analyze();
+    }
+    if (process.argv.indexOf("year") >= 0) {
+        return byYear();
+    }
+    if (process.argv.indexOf("result") >= 0) {
+        return result();
+    }
+    if (process.argv.indexOf("stable") >= 0) {
+        return stable();
     }
 }

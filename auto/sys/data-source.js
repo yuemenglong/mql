@@ -163,7 +163,8 @@ function merge() {
     return _.keys(stockMap).sort().map(transStock);
 }
 
-function Import(symbol) {
+function Import() {
+    var symbol = getSymbol();
     var importPath = __dirname.split("MT4")[0] + "import";
 
     function rmdir(root) {
@@ -331,7 +332,7 @@ function getDB(cb) {
         db = Promise.promisifyAll(res);
         return cb(db);
     }).finally(function() {
-        db.close();
+        return db.close();
     })
 }
 
@@ -343,24 +344,53 @@ function getSymbol() {
     return symbol;
 }
 
+function getSymbol() {
+    var symbol = process.argv.slice(-1)[0];
+    if (!/\d{6}/.test(symbol)) {
+        throw new Error("Invalid Symbol: " + symbol);
+    }
+    return symbol;
+}
+
+function cont() {
+    return getDB(function(db) {
+        return db.collection("day").distinct("symbol").then(function(res) {
+            var result = [];
+            return Promise.each(res, function(symbol) {
+                return db.collection("day").find({ symbol: symbol }).toArray().then(function(bars) {
+                    var continuous = bars.every(function(bar, i) {
+                        if (i == 0) return true;
+                        if (bar.close < bars[i - 1].close * 0.8 || bar.close > bars[i - 1] * 1.2) {
+                            return false;
+                        } else {
+                            return true;
+                        }
+                    })
+                    if (continuous) {
+                        console.log(symbol);
+                        result.push(symbol);
+                    }
+                });
+            }).then(function() {
+                var content = result.join("\n");
+                fs.writeFileSync(P.resolve(__dirname, "../result/cont.txt"), content);
+            })
+        });
+    });
+}
+
 exports.getBars = getBars;
 exports.getDB = getDB;
 
 if (require.main == module) {
-    attachEma();
-    // importToMongo();
-    // var symbol = process.argv.slice(-1)[0];
-    // if (!/\d{6}/.test(symbol)) {
-    //     throw new Error("Invalid Symbol: " + symbol);
-    // }
-    // if (process.argv.indexOf("import") >= 0) {
-    //     Import(symbol);
-    // } else if (process.argv.indexOf("test") >= 0) {
-    //     console.log(getBars(symbol).slice(0, 100));
-    // } else {
-    //     console.log("Unknown Command");
-    // }
-    // if (process.argv.indexOf("--") >= 0) {
-    //     setTimeout(_.noop, 1000000);
-    // }
+    if (process.argv.indexOf("import") >= 0) {
+        Import();
+    }
+    if (process.argv.indexOf("cont") >= 0) {
+        cont();
+    }
+    if (process.argv.indexOf("--") >= 0) {
+        setTimeout(_.noop, 1000000);
+    }
+
 }
