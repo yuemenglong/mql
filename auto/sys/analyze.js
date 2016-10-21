@@ -3,6 +3,7 @@ var _ = require("lodash");
 var resolveTrade = require("./common").resolveTrade;
 var resolve = require("./common").resolve;
 var fix = require("./common").fix;
+var P = require("path");
 
 function getNo() {
     return process.argv.slice(-1)[0].match(/\d+/)[0];
@@ -78,7 +79,7 @@ function print(result) {
     var winCount = result.filter(item => item.profit > 0).length;
     console.log("Win Rate", winCount, result.length, winCount / result.length * 100);
     var content = result.map(item => _.values(item).join(",")).join("\n");
-    fs.writeFileSync(resolve("stat.csv"), content);
+    fs.writeFileSync(P.resolve(__dirname, "../result/stat.csv"), content);
 }
 
 exports.stat = stat;

@@ -265,7 +265,6 @@ function stable() {
             }, []).sortBy("win").reverse().slice(0, 100).value();
         console.log(result);
     })
-
 }
 
 function master() {
