@@ -39,24 +39,18 @@ function getRawData() {
     return data;
 }
 
-function stat(records) {
-    if (typeof records == "string") {
-        records = _(resolveTrade(records))
-            .thru(s => s.match(/.+/gm))
-            .map(l => l.split(','))
-            .value();
-    }
-    if (!records || !records.length) {
+function stat(orders) {
+    if (!orders || !orders.length) {
         // console.log("No Order");
-        return records;
+        return orders;
     }
 
     var acc = 10000;
-    var result = records.map(function(record) {
-        var openTime = record[0].split(" ")[0];
-        var closeTime = record[1].split(" ")[0];
-        var open = fix(record[2]);
-        var close = fix(record[3]);
+    var result = orders.map(function(order) {
+        var openTime = order.openTime.split(" ")[0];
+        var closeTime = order.closeTime.split(" ")[0];
+        var open = fix(order.open);
+        var close = fix(order.close);
         var start = acc;
         acc = Math.floor(acc * close / open);
         var end = acc;

@@ -30,10 +30,9 @@ exports.resolveTrade = function(fileName) {
 }
 
 exports.resolve = function(fileName) {
-    fileName = __dirname.split("Indicators")[0] + "/Files/" + fileName;
-    return fileName;
+    var path = __dirname.split("Indicators")[0] + "/Files/" + fileName;
+    return path;
 }
-
 
 exports.fix = function(num) {
     num = _.round(num, 2).toString();

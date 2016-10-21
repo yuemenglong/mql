@@ -1,53 +1,81 @@
-var _ = require("lodash");
-var fs = require("fs");
-var Context = require("./context");
+//openTime, closeTime, open, close, volumn, status
+var fs = require("yy-fs");
 var resolve = require("./common").resolve;
-var fix = require("./common").fix;
 
 var INIT = 0;
 var OPEN = 1;
 var CLOSE = 2;
 var DELETE = 3;
 
-function Trade(symbol) {
-    _.merge(this, new Context(symbol));
-    this._orders = []; //openTime closeTime open close volumn status
-    this.orderBuy = function(volumn) {
-        if (this._orders.length && this._orders.slice(-1)[0].status == OPEN) {
-            console.log("Can't Buy");
-            return -1;
+function Trade(bars, exec) {
+    exec = exec.bind(this);
+    var pos = 0;
+    var orders = [];
+    var order = null;
+
+    this.bar = function(n) {
+        n = n || 0;
+        var idx = pos - n;
+        if (idx < 0) idx = 0;
+        if (idx >= bars.length) idx = bars.length - 1;
+        return bars[idx];
+    }
+    this.buy = function(price, volumn) {
+        var bar = this.bar(0);
+        if (this.opened() || (!price && !bar.volumn)) {
+            return;
         }
+        price = price || bar.close;
         volumn = volumn || 1;
-        return this._orders.push({
-            openTime: this.bar(0).time,
-            open: fix(this.bar(0).close),
+        order = {
+            openTime: bar.time,
+            open: price,
             volumn: volumn,
             status: OPEN,
-        }) - 1;
-    }
-    this.orderClose = function(ticket, price) {
-        if (this._orders.length && this._orders.slice(-1)[0].status != OPEN) {
-            console.log("Can't Close");
-            return -1;
         }
-        price = price || this.bar(0).close;
-        this._orders[ticket].closeTime = this.bar(0).time;
-        this._orders[ticket].close = fix(price);
-        this._orders[ticket].status = CLOSE;
-        return 0;
     }
-    this.orderDeleteLast = function() {
-        this._orders.pop();
+    this.close = function(price, volumn) {
+        var bar = this.bar(0);
+        if (!this.opened() || (!price && !bar.volumn)) {
+            return;
+        }
+        price = price || bar.close;
+        volumn = volumn || 1;
+        order.closeTime = bar.time;
+        order.close = price;
+        order.status = CLOSE;
+        orders.push(order);
+        order = null;
     }
-    this.orderSave = function() {
-        var fileName = resolve(this.symbol() + ".trade.csv");
-        var content = this.output().map(o => o.join(",")).join("\n");
-        fs.writeFileSync(fileName, content);
+    this.opened = function() {
+        return !!order;
     }
     this.output = function() {
-        return this._orders.map(function(o) {
-            return [o.openTime, o.closeTime, o.open, o.close, o.volumn, o.status];
-        })
+        return orders;
+    }
+    this.exec = function() {
+        bars.map(function(bar, i) {
+            pos = i;
+            execute(this);
+        }.bind(this));
+        this.opened() && this.close();
+        return this.output();
+    }
+    this.save = function(symbol) {
+        var path = resolve(`${symbol}.trade.csv`);
+        var content = this.output().map(o => o.join(",")).join("\n");
+        fs.writeFileSync(path, content);
+    }
+
+    function execute(that) {
+        var bar = that.bar(0);
+        var pre = that.bar(1);
+        if (that.opened() &&
+            (bar.close >= pre.close * 1.2 || bar.close <= pre.close * 0.8)
+        ) {
+            return that.close(pre.close);
+        }
+        return exec(bar, pre);
     }
 }
 

@@ -118,76 +118,6 @@ function runEmaStrategy(symbol, short, long) {
     })
 }
 
-//测试各种ema的情况
-function createEmaStrategy(short, long) {
-    function Strategy(symbol, year) {
-        _.merge(this, new Auto(symbol));
-        this.init = function() {
-            var bars = this.getBars().filter(l => l.time.startWith(symbol.toString()));
-        }
-        this.exec = function() {
-            var bar = this.bar(0);
-            var year = parseInt(bar.time.match(/^\d{4}/)[0]);
-            if (year > 2010) {
-                if (this.autoOpened()) {
-                    this.autoClose();
-                }
-                return;
-            }
-            if (bar.ema[short] > bar.ema[long] && !this.autoOpened()) {
-                this.autoBuy();
-            }
-            if (bar.ema[short] < bar.ema[long] && this.autoOpened()) {
-                this.autoClose();
-            }
-        }
-    }
-    return Strategy;
-}
-
-function merge() {
-    var res = _.range(0, 8).map(function(i) {
-        var fileName = `ema.${i}.txt`;
-        var lines = fs.readFileSync(fileName).toString().match(/.+/gm);
-        return lines.map(function(line) {
-            var items = line.split(",");
-            if (items[0] * 2 == items[1]) {
-                return ["0,0,0", line];
-            } else {
-                return line;
-            }
-        })
-    })
-    var content = _.flattenDeep(res).join("\n");
-    fs.writeFileSync("result/ema.txt", content);
-}
-
-function getResultPath(symbol, short, long) {
-    return `${__dirname}/ema/${symbol}/${symbol}.${short}-${long}.csv`;
-}
-
-function getEmaResult(symbol, short, long) {
-    var path = getResultPath(symbol, short, long);
-    try {
-        return fs.readFileSync(path).toString().match(/.+/gm).map(l => l.split(","));
-    } catch (ex) {
-        var Strategy = createEmaStrategy(short, long);
-        var records = execute(new Strategy(symbol));
-        var content = records.map(r => r.join(",")).join("\n");
-        fs.writeFileSync(path, content);
-        return records;
-    }
-}
-
-function readFileSync(path) {
-    return fs.readFileSync(path).toString().match(/.+/gm).map(l => l.split(","));
-}
-
-
-function getEmaStat(symbol, short, long) {
-    return stat(getEmaResult(symbol, short, long));
-}
-
 function analyzeByYear(symbol, start, end) {
     return getDB(function(db) {
         return db.collection(EMA_RES).find({ symbol: symbol, year: { $gte: start, $lte: end } }).toArray();
@@ -203,9 +133,22 @@ function analyzeByYear(symbol, start, end) {
     });
 }
 
+//analyze symbol
 function analyze() {
     var symbol = kit.getSymbol();
     return analyzeByYear(symbol, 2001, 2016);
+}
+
+//year start end symbol
+function year() {
+    var start = process.argv.slice(-3)[0];
+    var end = process.argv.slice(-3)[1];
+    var re = /\d{4}/;
+    if (!re.test(start) || !re.test(end)) {
+        throw new Error("Invalid Year");
+    }
+    var symbol = kit.getSymbol();
+    return analyzeByYear(symbol, parseInt(start), parseInt(end));
 }
 
 function getResult(symbol, short, long, start, end) {
@@ -219,17 +162,7 @@ function getResult(symbol, short, long, start, end) {
     })
 }
 
-function byYear() {
-    var start = process.argv.slice(-3)[0];
-    var end = process.argv.slice(-3)[1];
-    var re = /\d{4}/;
-    if (!re.test(start) || !re.test(end)) {
-        throw new Error("Invalid Year");
-    }
-    var symbol = kit.getSymbol();
-    return analyzeByYear(symbol, parseInt(start), parseInt(end));
-}
-
+//result short long start end symbol
 function result() {
     var start = process.argv.slice(-5)[2];
     var end = process.argv.slice(-5)[3];
@@ -247,6 +180,7 @@ function result() {
     return getResult(symbol, parseInt(short), parseInt(long), parseInt(start), parseInt(end));
 }
 
+//stable symbol
 function stable() {
     var symbol = kit.getSymbol();
     return getDB(function(db) {
@@ -335,7 +269,7 @@ if (require.main == module) {
         return analyze();
     }
     if (process.argv.indexOf("year") >= 0) {
-        return byYear();
+        return year();
     }
     if (process.argv.indexOf("result") >= 0) {
         return result();
