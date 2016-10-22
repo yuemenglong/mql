@@ -125,7 +125,7 @@ function merge() {
         var high = fix(_.max(all) / 100);
         var low = fix(_.min(all) / 100);
         var close = fix(value.slice(-1)[0][4] / 100);
-        var volumn = _.sumBy(value, "5");
+        var volumn = _.sumBy(value, "5") / 100;
         result.push([date, open, high, low, close, volumn]);
     }
 
