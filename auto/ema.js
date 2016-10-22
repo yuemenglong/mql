@@ -9,7 +9,7 @@ var fs = require("yy-fs");
 var cp = require("child_process");
 var getBars = require("./sys/data-source").getBars;
 var getDB = require("./sys/data-source").getDB;
-var Recorder = require("./sys/recorder");
+var Trade = require("./sys/trade");
 var Promise = require("bluebird");
 
 var SHORT_MIN = 1;
@@ -53,6 +53,19 @@ function Kit() {
         }
         return symbol;
     }
+    this.test = function(s, e) {
+        if (!e) {
+            var pattern = `\\d{${s}}`;
+        } else {
+            var pattern = `\\d{${s},${e}}`;
+        }
+        var re = new RegExp(pattern);
+        return function(s) {
+            if (!re.test(s)) {
+                throw new Error(s + " Not Match " + pattern);
+            }
+        }
+    }
 }
 
 var kit = new Kit();
@@ -61,39 +74,36 @@ function runEmaStrategy(symbol, short, long) {
     return getBars(symbol).then(function(bars) {
         return _(bars).groupBy(bar => bar.time.match(/^\d{4}/)[0]).value();
     }).then(function(groups) {
-        var recordsList = _.range(2001, 2017).map(function(year) {
+        var ordersList = _.range(2001, 2017).map(function(year) {
             if (!groups[year] || !groups[year].length) {
                 return;
             }
-            var recorder = new Recorder();
             var bars = groups[year];
-            bars.map(function(bar, i) {
-                if (recorder.opened() && recorder.isInvalid(bar, bars[i - 1])) {
-                    recorder.sell(bars[i - 1]);
-                    return;
+            var trade = new Trade(bars, function(bar, pre) {
+                if (!this.opened() && bar.ema[short] > bar.ema[long]) {
+                    this.buy();
+                } else if (this.opened() && bar.ema[short] < bar.ema[long]) {
+                    this.sell();
                 }
-                if (!recorder.opened() && bar.ema[short] > bar.ema[long]) {
-                    recorder.buy(bar);
-                } else if (recorder.opened() && bar.ema[short] < bar.ema[long]) {
-                    recorder.sell(bar);
+            }, {
+                deinit: function() {
+                    if (!this.opened()) return;
+                    if (groups[year + 1]) {
+                        this.sell(groups[year + 1][0].close);
+                    } else {
+                        this.sell(bars.slice(-1)[0].close);
+                    }
                 }
-            });
-            if (recorder.opened()) {
-                if (groups[year + 1]) {
-                    recorder.sell(groups[year + 1][0])
-                } else {
-                    recorder.sell(bars.slice(-1)[0])
-                }
-            }
-            return recorder.output().map(function(record) {
-                record.symbol = symbol;
-                record.year = year;
-                record.short = short;
-                record.long = long;
-                return record;
+            })
+            return trade.exec().map(function(order) {
+                order.symbol = symbol;
+                order.year = year;
+                order.short = short;
+                order.long = long;
+                return order;
             })
         }).filter(o => !!o);
-        var emaResultList = recordsList.map(function(records) {
+        var emaResultList = ordersList.map(function(records) {
             if (!records || !records.length) {
                 return;
             }
@@ -108,14 +118,36 @@ function runEmaStrategy(symbol, short, long) {
                 res: result,
             }
         }).filter(o => !!o);
-        recordsList = _.flatten(recordsList);
-        // console.log(recordsList);
+        ordersList = _.flatten(ordersList);
+        // console.log(ordersList);
         return getDB(function(db) {
-            return db.collection(EMA).insertMany(recordsList).then(function() {
+            return db.collection(EMA).insertMany(ordersList).then(function() {
                 return db.collection(EMA_RES).insertMany(emaResultList);
             });
         })
     })
+}
+
+function runEmaTrendStrategy(symbol, short, long) {
+    return getBars(symbol).then(function(bars) {
+        var result = _.range(long * 2, 120).map(function(flag) {
+            var trade = new Trade(bars, function(bar, pre) {
+                var trend = bar.ema[flag] > pre.ema[flag];
+                if (!this.opened() && bar.ema[short] > bar.ema[long] && trend) {
+                    this.buy();
+                } else if (this.opened() && bar.ema[short] < bar.ema[long]) {
+                    this.sell();
+                }
+            })
+            var output = trade.exec();
+            var res = output.reduce((acc, item) => acc * item.close / item.open, 1);
+            var ret = { short, long, res, flag };
+            console.log(ret);
+            return ret;
+        });
+        result = _(result).sortBy("res").value();
+        return result;
+    });
 }
 
 function analyzeByYear(symbol, start, end) {
@@ -128,15 +160,17 @@ function analyzeByYear(symbol, start, end) {
                 var obj = { short: value[0].short, long: value[0].long };
                 obj.res = value.reduce((acc, item) => acc * item.res, 1);
                 res.push(obj);
-            }, []).sortBy("res").reverse().slice(0, 100).value();
-        console.log(result);
+            }, []).sortBy("res").value();
+        return result;
     });
 }
 
 //analyze symbol
 function analyze() {
     var symbol = kit.getSymbol();
-    return analyzeByYear(symbol, 2001, 2016);
+    return analyzeByYear(symbol, 2001, 2016).then(function(res) {
+        console.log(res.slice(-100));
+    });
 }
 
 //year start end symbol
@@ -148,7 +182,23 @@ function year() {
         throw new Error("Invalid Year");
     }
     var symbol = kit.getSymbol();
-    return analyzeByYear(symbol, parseInt(start), parseInt(end));
+    return analyzeByYear(symbol, parseInt(start), parseInt(end)).then(function(res) {
+        console.log(res.slice(-100));
+    });;
+}
+
+function analyzeTrend() {
+    var symbol = kit.getSymbol();
+    return analyzeByYear(symbol, 2001, 2016).then(function(res) {
+        res = res.slice(-100).map(o => _.set(o, "flag", 0));
+        return Promise.mapSeries(res, function(o) {
+            return runEmaTrendStrategy(symbol, o.short, o.long);
+        }).then(function(res2) {
+            return _(res).concat(_.flatten(res2)).sortBy("res").value();
+        });
+    }).then(function(res) {
+        console.log(res.slice(-100));
+    });
 }
 
 function getResult(symbol, short, long, start, end) {
@@ -201,7 +251,7 @@ function stable() {
     })
 }
 
-function master() {
+function insert() {
     var symbol = kit.getSymbol();
 
     return Promise.try(function() {
@@ -224,22 +274,12 @@ function master() {
                 })
             })
         }).then(function(pairs) {
-            console.log(pairs);
-            var cpuNo = os.cpus().length - 1;
-            var group = _.ceil(pairs.length / cpuNo);
-            var tasksList = _.chunk(pairs, group);
-            tasksList.map(function(tasks, i) {
-                var args = {
-                    symbol: symbol,
-                    tasks: tasks,
-                    // output: `ema.${i}.txt`,
-                    idx: i,
-                }
-                args = JSON.stringify(args);
-                var child = cp.spawn("node", ["ema", "worker", args], { stdio: 'inherit' })
-                child.on("exit", function() {
-                    console.log("Finish " + i);
-                })
+            return Promise.each(pairs, function(pair, i) {
+                var short = pair[0];
+                var long = pair[1];
+                return runEmaStrategy(symbol, short, long).then(function() {
+                    console.log(i, "/", pairs.length, short, long);
+                });
             })
         })
     });
@@ -258,9 +298,28 @@ function worker() {
     });
 }
 
+//short long symbol
+function trend() {
+    // return runEmaTrendStrategy("000011", 1, 2).then(function(res) {
+    //     console.log(res);
+    //     return runEmaTrendStrategy("000011", 1, 3);
+    // }).then(function(res) {
+    //     console.log(res);
+    // });
+    return analyzeTrend();
+    // var short = process.argv.slice(-3)[0]
+    // var long = process.argv.slice(-3)[1]
+    // var symbol = kit.getSymbol();
+    // kit.test(1, 3)(short);
+    // kit.test(1, 3)(long);
+    // return runEmaTrendStrategy(symbol, short, long).then(function(res) {
+    //     console.log(res);
+    // });
+}
+
 if (require.main == module) {
-    if (process.argv.indexOf("master") >= 0) {
-        return master();
+    if (process.argv.indexOf("insert") >= 0) {
+        return insert();
     }
     if (process.argv.indexOf("worker") >= 0) {
         return worker();
@@ -276,5 +335,8 @@ if (require.main == module) {
     }
     if (process.argv.indexOf("stable") >= 0) {
         return stable();
+    }
+    if (process.argv.indexOf("trend") >= 0) {
+        return trend();
     }
 }

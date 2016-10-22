@@ -1,13 +1,14 @@
 //openTime, closeTime, open, close, volumn, status
 var fs = require("yy-fs");
 var resolve = require("./common").resolve;
+var _ = require("lodash");
 
 var INIT = 0;
 var OPEN = 1;
 var CLOSE = 2;
 var DELETE = 3;
 
-function Trade(bars, exec) {
+function Trade(bars, exec, opt) {
     exec = exec.bind(this);
     var pos = 0;
     var orders = [];
@@ -34,7 +35,7 @@ function Trade(bars, exec) {
             status: OPEN,
         }
     }
-    this.close = function(price, volumn) {
+    this.sell = function(price, volumn) {
         var bar = this.bar(0);
         if (!this.opened() || (!price && !bar.volumn)) {
             return;
@@ -50,20 +51,24 @@ function Trade(bars, exec) {
     this.opened = function() {
         return !!order;
     }
-    this.output = function() {
-        return orders;
-    }
     this.exec = function() {
+        opt && opt.init && opt.init.call(this);
         bars.map(function(bar, i) {
             pos = i;
             execute(this);
         }.bind(this));
-        this.opened() && this.close();
-        return this.output();
+        opt && opt.deinit && opt.deinit.call(this);
+        this.opened() && this.sell();
+        return orders;
     }
     this.save = function(symbol) {
+        if (!symbol) throw new Error("No Symbol");
         var path = resolve(`${symbol}.trade.csv`);
-        var content = this.output().map(o => o.join(",")).join("\n");
+        var content = orders.map(function(o) {
+            return ["openTime", "closeTime", "open", "close", "volumn", "status"].map(function(name) {
+                return o[name];
+            }).join(",");
+        }).join("\n");
         fs.writeFileSync(path, content);
     }
 
@@ -73,7 +78,7 @@ function Trade(bars, exec) {
         if (that.opened() &&
             (bar.close >= pre.close * 1.2 || bar.close <= pre.close * 0.8)
         ) {
-            return that.close(pre.close);
+            return that.sell(pre.close);
         }
         return exec(bar, pre);
     }
