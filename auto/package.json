@@ -10,9 +10,11 @@
   "license": "ISC",
   "dependencies": {
     "bluebird": "^3.4.6",
+    "cheerio": "^0.22.0",
     "lodash": "^4.16.4",
     "moment": "^2.15.1",
     "mongodb": "^2.2.10",
-    "yy-fs": "^1.0.0"
+    "yy-fs": "^1.0.0",
+    "yy-http": "^1.0.2"
   }
 }

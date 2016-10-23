@@ -8,8 +8,10 @@ var P = require("path");
 var fs = require("yy-fs");
 var cp = require("child_process");
 var getBars = require("./sys/data-source").getBars;
+var getSymbols = require("./sys/data-source").getSymbols;
 var getDB = require("./sys/data-source").getDB;
 var Trade = require("./sys/trade");
+var strategy = require("./strategy");
 var Promise = require("bluebird");
 
 var SHORT_MIN = 1;
@@ -17,8 +19,9 @@ var SHORT_MAX = 30;
 var LONG_MIN = 1;
 var LONG_MAX = 120;
 
-var EMA = "ema";
-var EMA_RES = "ema.res";
+var EMA_ORDER = "ema.order"; //symbol short long time
+var EMA_RES_YEAR = "ema.res.year"; //symbol short long year
+var EMA_RES_LAST = "ema.res.last"; //symbol short long
 
 function log(data) {
     console.log(data);
@@ -66,6 +69,20 @@ function Kit() {
             }
         }
     }
+    this.getEmaPairs = function() {
+        var pairs = _.range(SHORT_MIN, SHORT_MAX).map(function(short) {
+            return _.range(LONG_MIN, LONG_MAX).map(function(long) {
+                if (short * 2 > long) {
+                    return;
+                }
+                if (short * 60 < long) {
+                    return;
+                }
+                return { short, long };
+            }).filter(o => !!o);
+        })
+        return _.flatten(pairs);
+    }
 }
 
 var kit = new Kit();
@@ -103,7 +120,7 @@ function runEmaStrategy(symbol, short, long) {
                 return order;
             })
         }).filter(o => !!o);
-        var emaResultList = ordersList.map(function(records) {
+        var emaYearResultList = ordersList.map(function(records) {
             if (!records || !records.length) {
                 return;
             }
@@ -118,11 +135,19 @@ function runEmaStrategy(symbol, short, long) {
                 res: result,
             }
         }).filter(o => !!o);
-        ordersList = _.flatten(ordersList);
+        var orders = _.flatten(ordersList);
+        var emaResultLast = {
+            symbol: symbol,
+            short: short,
+            long: long,
+            res: emaYearResultList.reduce((acc, item) => acc * item.res, 10000),
+        };
         // console.log(ordersList);
         return getDB(function(db) {
-            return db.collection(EMA).insertMany(ordersList).then(function() {
-                return db.collection(EMA_RES).insertMany(emaResultList);
+            return db.collection(EMA_ORDER).insertMany(orders).then(function() {
+                return db.collection(EMA_RES_YEAR).insertMany(emaYearResultList);
+            }).then(function() {
+                return db.collection(EMA_RES_LAST).insert(emaResultLast);
             });
         })
     })
@@ -152,7 +177,7 @@ function runEmaTrendStrategy(symbol, short, long) {
 
 function analyzeByYear(symbol, start, end) {
     return getDB(function(db) {
-        return db.collection(EMA_RES).find({ symbol: symbol, year: { $gte: start, $lte: end } }).toArray();
+        return db.collection(EMA_RES_YEAR).find({ symbol: symbol, year: { $gte: start, $lte: end } }).toArray();
     }).then(function(res) {
         //symbol, short, long, year, res
         var result = _(res).groupBy(o => [o.short, o.long].join("_"))
@@ -163,6 +188,23 @@ function analyzeByYear(symbol, start, end) {
             }, []).sortBy("res").value();
         return result;
     });
+}
+
+function analyzeByTime(symbol, start, end) {
+    var pairs = kit.getEmaPairs();
+    return getBars(symbol).then(function(bars) {
+        bars = bars.filter(function(o) {
+            return start <= o.time && o.time <= end;
+        })
+        return pairs.map(function(pair) {
+            var trade = new Trade(bars, strategy(pair.short, pair.long));
+            var output = trade.exec();
+            var res = output.reduce((acc, item) => acc * item.close / item.open, 10000);
+            pair.res = res;
+            console.log(pair);
+            return pair;
+        })
+    })
 }
 
 //analyze symbol
@@ -187,8 +229,7 @@ function year() {
     });;
 }
 
-function analyzeTrend() {
-    var symbol = kit.getSymbol();
+function analyzeTrend(symbol) {
     return analyzeByYear(symbol, 2001, 2016).then(function(res) {
         res = res.slice(-100).map(o => _.set(o, "flag", 0));
         return Promise.mapSeries(res, function(o) {
@@ -203,7 +244,7 @@ function analyzeTrend() {
 
 function getResult(symbol, short, long, start, end) {
     return getDB(function(db) {
-        return db.collection(EMA_RES).find({ symbol: symbol, short: short, long: long, year: { $gte: start, $lte: end } }).toArray().then(function(res) {
+        return db.collection(EMA_RES_YEAR).find({ symbol: symbol, short: short, long: long, year: { $gte: start, $lte: end } }).toArray().then(function(res) {
             return res.reduce(kit.multiReduce("res"), 1);
         }).then(function(res) {
             console.log(res);
@@ -234,7 +275,7 @@ function result() {
 function stable() {
     var symbol = kit.getSymbol();
     return getDB(function(db) {
-        return db.collection(EMA_RES).find({ symbol: symbol }).toArray();
+        return db.collection(EMA_RES_YEAR).find({ symbol: symbol }).toArray();
     }).then(function(res) {
         var result = _(res).groupBy(o => [o.short, o.long].join("_"))
             .transform(function(res, value, key) {
@@ -251,9 +292,8 @@ function stable() {
     })
 }
 
-function insert() {
-    var symbol = kit.getSymbol();
-
+function insertOne(symbol) {
+    console.log("Start", symbol);
     return Promise.try(function() {
         var pairs = _.range(SHORT_MIN, SHORT_MAX).map(function(short) {
             return _.range(LONG_MIN, LONG_MAX).map(function(long) {
@@ -269,7 +309,7 @@ function insert() {
         pairs = _.flatten(pairs);
         return getDB(function(db) {
             return Promise.filter(pairs, function(pair) {
-                return db.collection(EMA).count({ symbol: symbol, short: pair[0], long: pair[1] }).then(function(count) {
+                return db.collection(EMA_RES_LAST).count({ symbol: symbol, short: pair[0], long: pair[1] }).then(function(count) {
                     return count == 0;
                 })
             })
@@ -278,11 +318,22 @@ function insert() {
                 var short = pair[0];
                 var long = pair[1];
                 return runEmaStrategy(symbol, short, long).then(function() {
-                    console.log(i, "/", pairs.length, short, long);
+                    console.log(i, "/", pairs.length, symbol, short, long);
                 });
             })
         })
     });
+}
+
+function insert() {
+    var symbol = kit.getSymbol();
+    return insertOne(symbol);
+}
+
+function all() {
+    return getSymbols().then(function(symbols) {
+        return Promise.each(symbols, insertOne);
+    })
 }
 
 function worker() {
@@ -298,23 +349,19 @@ function worker() {
     });
 }
 
-//short long symbol
+//symbol
 function trend() {
-    // return runEmaTrendStrategy("000011", 1, 2).then(function(res) {
-    //     console.log(res);
-    //     return runEmaTrendStrategy("000011", 1, 3);
-    // }).then(function(res) {
-    //     console.log(res);
-    // });
-    return analyzeTrend();
-    // var short = process.argv.slice(-3)[0]
-    // var long = process.argv.slice(-3)[1]
-    // var symbol = kit.getSymbol();
-    // kit.test(1, 3)(short);
-    // kit.test(1, 3)(long);
-    // return runEmaTrendStrategy(symbol, short, long).then(function(res) {
-    //     console.log(res);
-    // });
+    return analyzeTrend(kit.getSymbol());
+}
+
+function time() {
+    var start = process.argv.slice(-3)[0];
+    var end = process.argv.slice(-3)[1];
+    var symbol = kit.getSymbol();
+    return analyzeByTime(symbol, start, end).then(function(res) {
+        res = _(res).sortBy("res").slice(-100).value();
+        console.log(res);
+    });
 }
 
 if (require.main == module) {
@@ -338,5 +385,11 @@ if (require.main == module) {
     }
     if (process.argv.indexOf("trend") >= 0) {
         return trend();
+    }
+    if (process.argv.indexOf("time") >= 0) {
+        return time();
+    }
+    if (process.argv.indexOf("all") >= 0) {
+        return all();
     }
 }

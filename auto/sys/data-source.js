@@ -4,7 +4,8 @@ var moment = require("moment");
 var P = require("path");
 var cp = require("child_process");
 var MongoClient = require("mongodb").MongoClient;
-var ObjectId = require("mongodb").ObjectId;
+var HttpClient = require("yy-http").HttpClient;
+var cheerio = require("cheerio");
 var Promise = require("bluebird");
 var fix = require("./common").fix;
 
@@ -232,57 +233,6 @@ function importToMongo() {
     }).done();
 }
 
-function getDayRecords(symbol) {
-    var path = P.resolve(__dirname, `../stock/${symbol}.day.csv`);
-    return fs.readFileSync(path).toString().match(/.+/gm).map(line => line.split(",").map((item, i) => i < 2 ? item.split(" ")[0] : _.round(item, 2)));
-}
-
-function getBarsFromRecords(records) {
-    function toObj(record) {
-        return {
-            time: record[0],
-            open: record[1],
-            high: record[2],
-            low: record[3],
-            close: record[4],
-            volumn: record[5]
-        };
-    }
-
-    function ema(field, n, path) {
-        path = path || "ema." + n;
-        return function(acc, item) {
-            item.ema = item.ema || {};
-            if (!acc) {
-                var ema = item[field];
-                // item.ema[n] = item[field];
-            } else {
-                var ema = (item[field] * 2 + acc * (n - 1)) / (n + 1);
-                // item.ema[n] = (item[field] * 2 + acc * (n - 1)) / (n + 1);
-            }
-            _.set(item, path, ema);
-            return ema;
-        }
-    }
-
-    function diff(item) {
-        item.diff = item.ema[12] - item.ema[26];
-    }
-
-    function attachIndicator(records) {
-        _.range(1, 200).map(function(i) {
-            records.reduce(ema("close", i), 0);
-        })
-        records.map(diff);
-        records.reduce(ema("diff", 9, "dea"), 0);
-        return records;
-    }
-    return _(records)
-        .map(toObj)
-        .thru(attachIndicator)
-        .value();
-}
-
 var CACHE = {};
 
 function getBars(symbol) {
@@ -326,6 +276,14 @@ function getBars(symbol) {
     })
 }
 
+function getSymbols() {
+    return getDB(function(db) {
+        return db.collection("symbol").find({}).toArray();
+    }).then(function(res) {
+        return _(res).map(o => o.symbol).sort().value();
+    })
+}
+
 function getDB(cb) {
     var db = null;
     return Promise.promisify(MongoClient.connect)(URL).then(function(res) {
@@ -344,19 +302,13 @@ function getSymbol() {
     return symbol;
 }
 
-function getSymbol() {
-    var symbol = process.argv.slice(-1)[0];
-    if (!/\d{6}/.test(symbol)) {
-        throw new Error("Invalid Symbol: " + symbol);
-    }
-    return symbol;
-}
-
 function cont() {
     return getDB(function(db) {
-        return db.collection("day").distinct("symbol").then(function(res) {
+        return db.collection("symbol").find({}).toArray().then(function(res) {
+            res = _.sortBy(res, "symbol");
             var result = [];
-            return Promise.each(res, function(symbol) {
+            return Promise.each(res, function(stock) {
+                var symbol = stock.symbol;
                 return db.collection("day").find({ symbol: symbol }).toArray().then(function(bars) {
                     var continuous = bars.every(function(bar, i) {
                         if (i == 0) return true;
@@ -367,20 +319,165 @@ function cont() {
                         }
                     })
                     if (continuous) {
-                        console.log(symbol);
-                        result.push(symbol);
+                        var ret = { symbol: stock.symbol, name: stock.name };
+                        console.log(ret);
+                        result.push(ret);
                     }
                 });
             }).then(function() {
-                var content = result.join("\n");
+                var content = result.map(o => _.values(o).join(",")).join("\n");
                 fs.writeFileSync(P.resolve(__dirname, "../result/cont.txt"), content);
             })
         });
     });
 }
 
+function appendFromSina(symbol) {
+    // var symbol = getSymbol();
+
+    function getYearAndJidu(lastTime) {
+        var date = new Date(lastTime.replace(/\./, "-"));
+        var now = new Date();
+        if (now.getDay() == 0) now = new Date(now.valueOf() - 86400 * 2 * 1000);
+        if (now.getDay() == 6) now = new Date(now.valueOf() - 86400 * 1 * 1000);
+        if (date.getFullYear() == now.getFullYear() &&
+            date.getMonth() == now.getMonth() &&
+            date.getDate() == now.getDate()) {
+            console.log(symbol, "Has Last Value");
+            return [];
+        }
+        var days = [];
+        date = new Date(date.valueOf() + 86400 * 1000);
+        while (date < now) {
+            days.push(date);
+            date = new Date(date.valueOf() + 86400 * 1000);
+        }
+        var pairs = _(days).groupBy(function(day) {
+            return [day.getFullYear(), _.floor(day.getMonth() / 3) + 1].join("_");
+        }).transform(function(res, value, key) {
+            var year = key.split("_")[0];
+            var jidu = key.split("_")[1];
+            res.push({ year, jidu });
+        }, []).value();
+        return pairs;
+    }
+
+    function crawl(pair) {
+        var client = new HttpClient();
+        var url = "http://vip.stock.finance.sina.com.cn/corp/go.php/vMS_MarketHistory/stockid/{SYMBOL}.phtml?year={YEAR}&jidu={JIDU}";
+        url = url.replace("{SYMBOL}", symbol).replace("{YEAR}", pair.year).replace("{JIDU}", pair.jidu);
+        console.log("Crawl", url);
+        return client.get(url).then(function(res) {
+            console.log("Crawl", url, "Succ");
+            var $ = cheerio.load(res.body);
+            var rows = [];
+            $("#FundHoldSharesTable").find("tr").map(function() {
+                var row = [];
+                $(this).find("td").map(function() {
+                    var value = $(this).text().match(/[^\s]+/)[0];
+                    row.push(value);
+                })
+                rows.push(row);
+            })
+            return rows;
+        }).then(function(rows) {
+            rows = rows.map(function(r) {
+                if (!r.length || !/\d{4}-\d{2}-\d{2}/.test(r)) {
+                    return;
+                }
+                return {
+                    symbol: symbol,
+                    time: r[0].replace(/-/g, "."),
+                    open: r[1],
+                    high: r[2],
+                    low: r[4],
+                    close: r[3],
+                    volumn: r[5],
+                    src: 1,
+                }
+            }).filter(o => !!o);
+            return rows;
+        })
+    }
+
+    function getLastTime() {
+        return getDB(function(db) {
+            return db.collection("day.last").find({ symbol: symbol }).toArray().then(function(res) {
+                if (res && res.length) {
+                    return res[0].time;
+                }
+                return db.collection("day").find({ symbol: symbol }).sort({ time: -1 }).limit(1).toArray().then(function(res) {
+                    if (res && res.length) {
+                        return res[0].time;
+                    }
+                    return "2000.12.31";
+                });
+            })
+        })
+    }
+
+    return getLastTime().then(function(lastTime) {
+        console.log(symbol, lastTime);
+        var pairs = getYearAndJidu(lastTime);
+        return Promise.mapSeries(pairs, crawl).then(function(res) {
+            return _(res).flatten().filter(function(o) {
+                return o.time > lastTime;
+            }).sortBy("time").value();
+        })
+    }).then(function(res) {
+        if (!res.length) return;
+        return getDB(function(db) {
+            return db.collection("day").insertMany(res).then(function() {
+                return db.collection("day.last").update({
+                    symbol: symbol
+                }, {
+                    $set: {
+                        symbol: symbol,
+                        lastTime: moment().format("YYYY.MM.DD"),
+                    }
+                }, true);
+            });
+        })
+    })
+}
+
+function sina() {
+    return getSymbols().then(function(symbols) {
+        return Promise.each(symbols, function(symbol) {
+            return appendFromSina(symbol);
+        })
+    })
+}
+
+function importSymbol() {
+    var URL = "http://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/Market_Center.getHQNodeData?page={PAGE}&num=80&sort=symbol&asc=1&node={MARKET}_a&symbol=&_s_r_a=page";
+    var client = new HttpClient();
+    client.setCharset("gb2312");
+    var urls = ["sh", "sz"].map(function(market) {
+        return _.range(1, 25).map(function(page) {
+            return URL.replace("{MARKET}", market).replace("{PAGE}", page);
+        })
+    })
+    urls = _.flatten(urls);
+    return Promise.each(urls, function(url) {
+        console.log(url);
+        return client.get(url).then(function(res) {
+            var json = eval(res.body);
+            // var json = JSON.parse(res.body);
+            if (!json) return;
+            var objs = json.map(function(o) {
+                return { symbol: o.code, name: o.name, }
+            })
+            return getDB(function(db) {
+                return db.collection("symbol").insertMany(objs);
+            })
+        })
+    })
+}
+
 exports.getBars = getBars;
 exports.getDB = getDB;
+exports.getSymbols = getSymbols;
 
 if (require.main == module) {
     if (process.argv.indexOf("import") >= 0) {
@@ -389,8 +486,10 @@ if (require.main == module) {
     if (process.argv.indexOf("cont") >= 0) {
         cont();
     }
+    if (process.argv.indexOf("sina") >= 0) {
+        sina();
+    }
     if (process.argv.indexOf("--") >= 0) {
         setTimeout(_.noop, 1000000);
     }
-
 }

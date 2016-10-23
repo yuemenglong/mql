@@ -5,7 +5,7 @@ var resolve = require("./common").resolve;
 var fix = require("./common").fix;
 var P = require("path");
 
-function getNo() {
+function getSymbol() {
     return process.argv.slice(-1)[0].match(/\d+/)[0];
 }
 
@@ -21,7 +21,7 @@ function ema(data, n) {
 }
 
 function getRawData() {
-    var fileName = "export/" + getNo() + ".export.csv";
+    var fileName = "export/" + getSymbol() + ".export.csv";
     var content = fs.readFileSync(fileName).toString();
     var lines = content.match(/.+/gm);
 
@@ -76,12 +76,28 @@ function print(result) {
     fs.writeFileSync(P.resolve(__dirname, "../result/stat.csv"), content);
 }
 
+function cmd() {
+    var fileName = process.argv.slice(-1)[0];
+    var orders = resolveTrade(fileName).match(/.+/gm).map(function(line) {
+        line = line.split(",");
+        return {
+            openTime: line[0],
+            closeTime: line[1],
+            open: line[2],
+            close: line[3],
+            volumn: line[4],
+            status: line[5],
+        }
+    });
+    return print(stat(orders));
+}
+
 exports.stat = stat;
 exports.print = print;
 
 // ShellExecuteA(hWnd, "open", "node", "analyze -- 000001.trade.csv", "D:/workspace/nodejs/mql/auto/", 1);
 if (require.main == module) {
-    print(stat(process.argv.slice(-1)[0]));
+    cmd();
     if (process.argv.indexOf("--") >= 0) {
         setTimeout(_.noop, 10000000);
     }
