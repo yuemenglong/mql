@@ -252,16 +252,41 @@ function getBars(symbol) {
         }
     }
 
+    function attachEma(bars) {
+        _.range(1, 200).map(function(i) {
+            bars.reduce(ema("close", i), 0);
+        })
+    }
+
+    function attachMacd(bars) {
+        bars.map(diff);
+        bars.reduce(ema("diff", 9, "dea"), 0);
+    }
+
+
+    function attachMa(bars) {
+        _.range(1, 200).map(function(n) {
+            bars.reduce(function(acc, bar, i) {
+                bar.ma = bar.ma || {};
+                if (acc == 0) {
+                    acc = bar.close * n;
+                } else {
+                    var pre = bars[i - n] || bars[0];
+                    acc = acc - parseFloat(pre.close) + parseFloat(bar.close);
+                }
+                bar.ma[n] = _.round(acc / n, 2);
+                return acc;
+            }, 0);
+        })
+    }
+
     function diff(item) {
         item.diff = item.ema[12] - item.ema[26];
     }
 
     function attachIndicator(bars) {
-        _.range(1, 200).map(function(i) {
-            bars.reduce(ema("close", i), 0);
-        })
-        bars.map(diff);
-        bars.reduce(ema("diff", 9, "dea"), 0);
+        attachEma(bars);
+        attachMa(bars);
         return bars;
     }
     if (CACHE[symbol]) {

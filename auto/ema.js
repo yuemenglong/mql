@@ -83,6 +83,15 @@ function Kit() {
         })
         return _.flatten(pairs);
     }
+    this.getArgs = function(flag, idx, dft) {
+        idx = idx || 1;
+        dft = dft || null;
+        if (process.argv.indexOf(flag) < 0) {
+            return dft;
+        } else {
+            return process.argv[process.argv.indexOf(flag) + idx];
+        }
+    }
 }
 
 var kit = new Kit();
@@ -156,14 +165,7 @@ function runEmaStrategy(symbol, short, long) {
 function runEmaTrendStrategy(symbol, short, long) {
     return getBars(symbol).then(function(bars) {
         var result = _.range(long * 2, 120).map(function(flag) {
-            var trade = new Trade(bars, function(bar, pre) {
-                var trend = bar.ema[flag] > pre.ema[flag];
-                if (!this.opened() && bar.ema[short] > bar.ema[long] && trend) {
-                    this.buy();
-                } else if (this.opened() && bar.ema[short] < bar.ema[long]) {
-                    this.sell();
-                }
-            })
+            var trade = new Trade(bars, strategy(short, long, flag));
             var output = trade.exec();
             var res = output.reduce((acc, item) => acc * item.close / item.open, 1);
             var ret = { short, long, res, flag };
@@ -242,7 +244,7 @@ function analyzeTrend(symbol) {
     });
 }
 
-function getResult(symbol, short, long, start, end) {
+function getResult(symbol, short, long, flag, start, end) {
     return getDB(function(db) {
         return db.collection(EMA_RES_YEAR).find({ symbol: symbol, short: short, long: long, year: { $gte: start, $lte: end } }).toArray().then(function(res) {
             return res.reduce(kit.multiReduce("res"), 1);
@@ -253,22 +255,71 @@ function getResult(symbol, short, long, start, end) {
     })
 }
 
-//result short long start end symbol
+//result -p short long -f flag -t start end symbol
 function result() {
-    var start = process.argv.slice(-5)[2];
-    var end = process.argv.slice(-5)[3];
-    var re = /\d{4}/;
-    if (!re.test(start) || !re.test(end)) {
-        throw new Error("Invalid Year");
-    }
-    var short = process.argv.slice(-5)[0];
-    var long = process.argv.slice(-5)[1];
-    var re = /\d{1,3}/;
-    if (!re.test(short) || !re.test(long)) {
-        throw new Error("Invalid Year");
-    }
+    var short = kit.getArgs("-p", 1);
+    var long = kit.getArgs("-p", 2);
+    var flag = kit.getArgs("-f");
+    var start = kit.getArgs("-t", 1);
+    var end = kit.getArgs("-t", 2);
     var symbol = kit.getSymbol();
-    return getResult(symbol, parseInt(short), parseInt(long), parseInt(start), parseInt(end));
+
+    function getPairs() {
+        if (flag == null) var flags = [null];
+        else if (flag == 0) var flags = _.range(1, LONG_MAX);
+        else var flags = [flag];
+        if (short == null && long == null) {
+            var shorts = _.range(1, SHORT_MAX);
+            var longs = _.range(1, LONG_MAX);
+        } else {
+            var shorts = [short];
+            var longs = [long];
+        }
+        var result = flags.map(function(flag) {
+            flag = flag == null ? 0 : parseInt(flag);
+            return shorts.map(function(short) {
+                short = parseInt(short);
+                return longs.map(function(long) {
+                    long = parseInt(long);
+                    if (short * 2 > long) return;
+                    if (short * 60 < long) return;
+                    if (flag && long * 2 > flag) return;
+                    return { short: short, long: long, flag: flag };
+                })
+            })
+        });
+        result = _(result).flattenDeep().filter(o => !!o).value();
+        return result;
+    }
+
+    function timeFilter(bars) {
+        if (!start && !end) {
+            return bars;
+        }
+        return bars.filter(function(bar) {
+            return start <= bar.time && bar.time <= end;
+        })
+    }
+
+    return getBars(symbol).then(timeFilter).then(function(bars) {
+        var pairs = getPairs();
+        return Promise.mapSeries(pairs, function(pair, i) {
+            var trade = new Trade(bars, strategy(pair.short, pair.long, pair.flag));
+            var output = trade.exec();
+            var res = output.reduce((acc, item) => _.floor(acc * item.close / item.open), 10000);
+            var ret = { short: pair.short, long: pair.long, flag: pair.flag, res: res };
+            var ratio = _.floor(i / pairs.length * 100, 2);
+            var out = ratio + "%" + "\33[K\r";
+            process.stdout.write(out);
+            // console.log();
+            return ret;
+        });
+    }).then(function(res) {
+        res = _(res).sortBy("res").slice(-100).value();
+        console.log(res);
+    })
+
+    // return getResult(symbol, parseInt(short), parseInt(long), parseInt(start), parseInt(end));
 }
 
 //stable symbol
@@ -367,9 +418,6 @@ function time() {
 if (require.main == module) {
     if (process.argv.indexOf("insert") >= 0) {
         return insert();
-    }
-    if (process.argv.indexOf("worker") >= 0) {
-        return worker();
     }
     if (process.argv.indexOf("analyze") >= 0) {
         return analyze();
