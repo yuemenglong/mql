@@ -18,6 +18,8 @@ var EXTRACT_DIST = "../extract";
 var OUTPUT_DIR = "../stock";
 var EXT = ".day.csv";
 var URL = "mongodb://localhost:27017/stock";
+var BAR_DAY = "bar.day";
+var CACHE_DAY = "cache.day";
 
 function log(data) {
     console.log(data);
@@ -224,7 +226,7 @@ function importToMongo() {
     }
     Promise.promisify(MongoClient.connect)(URL).then(function(res) {
         db = Promise.promisifyAll(res);
-        collection = db.collection("day");
+        collection = db.collection(BAR_DAY);
         return Promise.each(fs.readdirSync(P.resolve(__dirname, "../stock")), singleFile);
     }).catch(function(err) {
         console.log(err.stack);
@@ -242,10 +244,8 @@ function getBars(symbol) {
             item.ema = item.ema || {};
             if (!acc) {
                 var ema = item[field];
-                // item.ema[n] = item[field];
             } else {
                 var ema = (item[field] * 2 + acc * (n - 1)) / (n + 1);
-                // item.ema[n] = (item[field] * 2 + acc * (n - 1)) / (n + 1);
             }
             _.set(item, path, ema);
             return ema;
@@ -262,7 +262,6 @@ function getBars(symbol) {
         bars.map(diff);
         bars.reduce(ema("diff", 9, "dea"), 0);
     }
-
 
     function attachMa(bars) {
         _.range(1, 200).map(function(n) {
@@ -293,11 +292,16 @@ function getBars(symbol) {
         return Promise.resolve(CACHE[symbol]);
     }
     return getDB(function(db) {
-        return db.collection("day").find({ symbol: symbol }).toArray().then(function(bars) {
-            attachIndicator(bars);
-            CACHE[symbol] = bars;
-            return bars;
-        });
+        return db.collection(CACHE_DAY).find({ symbol: symbol }).toArray().then(function(res) {
+            if (res && res.length) return res;
+            return db.collection(BAR_DAY).find({ symbol: symbol }).toArray().then(function(bars) {
+                attachIndicator(bars);
+                CACHE[symbol] = bars;
+                return db.collection(CACHE_DAY).insertMany(bars).then(function() {
+                    return bars;
+                })
+            });
+        })
     })
 }
 
@@ -334,7 +338,7 @@ function cont() {
             var result = [];
             return Promise.each(res, function(stock) {
                 var symbol = stock.symbol;
-                return db.collection("day").find({ symbol: symbol }).toArray().then(function(bars) {
+                return db.collection(BAR_DAY).find({ symbol: symbol }).toArray().then(function(bars) {
                     var continuous = bars.every(function(bar, i) {
                         if (i == 0) return true;
                         if (bar.close < bars[i - 1].close * 0.8 || bar.close > bars[i - 1] * 1.2) {
@@ -431,7 +435,7 @@ function appendFromSina(symbol) {
                 if (res && res.length) {
                     return res[0].time;
                 }
-                return db.collection("day").find({ symbol: symbol }).sort({ time: -1 }).limit(1).toArray().then(function(res) {
+                return db.collection(BAR_DAY).find({ symbol: symbol }).sort({ time: -1 }).limit(1).toArray().then(function(res) {
                     if (res && res.length) {
                         return res[0].time;
                     }
@@ -452,7 +456,7 @@ function appendFromSina(symbol) {
     }).then(function(res) {
         if (!res.length) return;
         return getDB(function(db) {
-            return db.collection("day").insertMany(res).then(function() {
+            return db.collection(BAR_DAY).insertMany(res).then(function() {
                 return db.collection("day.last").update({
                     symbol: symbol
                 }, {
@@ -505,6 +509,9 @@ exports.getDB = getDB;
 exports.getSymbols = getSymbols;
 
 if (require.main == module) {
+    getBars(getSymbol()).then(function(bars) {
+        console.log(bars.length);
+    })
     if (process.argv.indexOf("import") >= 0) {
         Import();
     }

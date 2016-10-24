@@ -18,6 +18,8 @@ var SHORT_MIN = 1;
 var SHORT_MAX = 30;
 var LONG_MIN = 1;
 var LONG_MAX = 120;
+var SHORT_FLAG = 0;
+var LONG_FLAG = 160;
 
 var EMA_ORDER = "ema.order"; //symbol short long time
 var EMA_RES_YEAR = "ema.res.year"; //symbol short long year
@@ -244,17 +246,6 @@ function analyzeTrend(symbol) {
     });
 }
 
-function getResult(symbol, short, long, flag, start, end) {
-    return getDB(function(db) {
-        return db.collection(EMA_RES_YEAR).find({ symbol: symbol, short: short, long: long, year: { $gte: start, $lte: end } }).toArray().then(function(res) {
-            return res.reduce(kit.multiReduce("res"), 1);
-        }).then(function(res) {
-            console.log(res);
-            return res;
-        })
-    })
-}
-
 //result -p short long -f flag -t start end symbol
 function result() {
     var short = kit.getArgs("-p", 1);
@@ -266,7 +257,7 @@ function result() {
 
     function getPairs() {
         if (flag == null) var flags = [null];
-        else if (flag == 0) var flags = _.range(1, LONG_MAX);
+        else if (flag == 0) var flags = _.range(SHORT_FLAG, LONG_FLAG);
         else var flags = [flag];
         if (short == null && long == null) {
             var shorts = _.range(1, SHORT_MAX);
@@ -318,8 +309,6 @@ function result() {
         res = _(res).sortBy("res").slice(-100).value();
         console.log(res);
     })
-
-    // return getResult(symbol, parseInt(short), parseInt(long), parseInt(start), parseInt(end));
 }
 
 //stable symbol

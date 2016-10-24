@@ -91,7 +91,7 @@ function Trade(bars, exec, opt) {
             } else {
                 var ret = acc;
             }
-            if (!opened && bar.time >= order.openTime) {
+            if (order && !opened && bar.time >= order.openTime) {
                 opened = true;
             } else if (opened && bar.time >= order.closeTime) {
                 opened = false;
