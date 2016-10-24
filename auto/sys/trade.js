@@ -71,6 +71,37 @@ function Trade(bars, exec, opt) {
         }).join("\n");
         fs.writeFileSync(path, content);
     }
+    this.orders = function() {
+        return orders;
+    }
+    this.detail = function() {
+        var details = [];
+        var next = 0;
+        var opened = false;
+        bars.reduce(function(acc, bar) {
+            bar = _.clone(bar);
+            details.push(bar);
+            var order = orders[next];
+            if (!order || !opened) {
+                bar.res = acc;
+                var ret = acc;
+            } else if (opened) {
+                bar.res = _.floor(acc * bar.close / order.open);
+                var ret = acc;
+            } else {
+                var ret = acc;
+            }
+            if (!opened && bar.time >= order.openTime) {
+                opened = true;
+            } else if (opened && bar.time >= order.closeTime) {
+                opened = false;
+                next++;
+                var ret = bar.res;
+            }
+            return ret;
+        }, 10000);
+        return details;
+    }
 
     function execute(that) {
         var bar = that.bar(0);
@@ -83,5 +114,7 @@ function Trade(bars, exec, opt) {
         return exec(bar, pre);
     }
 }
+
+
 
 module.exports = Trade;

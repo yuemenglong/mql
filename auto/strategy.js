@@ -76,7 +76,30 @@ if (require.main == module) {
         })
         var trade = new Trade(bars, strategy(short, long, flag));
         var output = trade.exec();
+        var opened = false;
+        var next = 0;
+        bars.reduce(function(acc, bar) {
+            var order = output[next];
+            if (!order || !opened) {
+                bar.res = acc;
+                var ret = acc;
+            } else if (opened) {
+                bar.res = _.floor(acc * bar.close / order.open);
+                var ret = acc;
+            } else {
+                var ret = acc;
+            }
+            if (!opened && bar.time >= order.openTime) {
+                opened = true;
+            } else if (opened && bar.time >= order.closeTime) {
+                opened = false;
+                var ret = bar.res;
+            }
+            return ret;
+        }, 10000);
         trade.save(symbol);
         print(stat(output));
+        var content = trade.detail().map(bar => [bar.time, bar.close, bar.res].join(",")).join("\n");
+        fs.writeFileSync(P.resolve(__dirname, "result/detail.csv"), content);
     });
 }
