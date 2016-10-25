@@ -9,8 +9,8 @@ var OPEN = 1;
 var CLOSE = 2;
 var DELETE = 3;
 
-function Trade(bars, exec, opt) {
-    exec = exec.bind(this);
+function Trade(bars, cb, opt) {
+    cb = cb.bind(this);
     var pos = 0;
     var orders = [];
     var order = null;
@@ -35,6 +35,7 @@ function Trade(bars, exec, opt) {
             volumn: volumn,
             status: OPEN,
         }
+        return "BUY";
     }
     this.sell = function(price, volumn) {
         var bar = this.bar(0);
@@ -48,6 +49,7 @@ function Trade(bars, exec, opt) {
         order.status = CLOSE;
         orders.push(order);
         order = null;
+        return "SELL";
     }
     this.opened = function() {
         return !!order;
@@ -118,6 +120,11 @@ function Trade(bars, exec, opt) {
         }).filter(o => !!o);
         return result;
     }
+    this.operation = function() {
+        var pre = bars.slice(-2)[0];
+        var bar = bars.slice(-2)[1];
+        return cb(bar, pre);
+    }
 
     function execute(that) {
         var bar = that.bar(0);
@@ -127,7 +134,7 @@ function Trade(bars, exec, opt) {
         ) {
             return that.sell(pre.close);
         }
-        return exec(bar, pre);
+        return cb(bar, pre);
     }
 }
 

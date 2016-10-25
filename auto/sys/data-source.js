@@ -248,6 +248,7 @@ function getBars(symbol) {
             } else {
                 var ema = (item[field] * 2 + acc * (n - 1)) / (n + 1);
             }
+            ema = _.round(parseFloat(ema), 2);
             _.set(item, path, ema);
             return ema;
         }

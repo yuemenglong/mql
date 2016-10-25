@@ -13,8 +13,6 @@ var INDICATOR = "ma";
 //短期均线上穿长期均线
 function strategy(short, long, flag) {
     return function(bar, pre) {
-        var bar = this.bar(0);
-        var pre = this.bar(1);
         if (flag != null && flag != 0) {
             var trend = bar.close > bar[INDICATOR][flag];
         } else {
@@ -23,28 +21,22 @@ function strategy(short, long, flag) {
         if (pre[INDICATOR][short] < pre[INDICATOR][long] &&
             bar[INDICATOR][short] > bar[INDICATOR][long] &&
             // bar[INDICATOR][long] > pre[INDICATOR][long] &&
-            trend &&
-            !this.opened()
+            trend
         ) {
-            this.buy();
+            return this.buy();
         }
-        if (bar[INDICATOR][short] < bar[INDICATOR][long] && this.opened()) {
-            this.sell();
+        if (pre[INDICATOR][short] > pre[INDICATOR][long] &&
+            bar[INDICATOR][short] < bar[INDICATOR][long]
+        ) {
+            return this.sell();
         }
     }
 }
 
-function operation(symbol) {
+function operation(symbol, short, long) {
     return getBars(symbol).then(function(bars) {
-        var pre = bars.slice(-2)[0];
-        var bar = bars.slice(-2)[1];
-        if (pre[INDICATOR][short] <= pre[INDICATOR][long] && bar[INDICATOR][short] > bar[INDICATOR][long]) {
-            console.log("BUY");
-        } else if (pre[INDICATOR][short] >= pre[INDICATOR][long] && bar[INDICATOR][short] < bar[INDICATOR][long]) {
-            console.log("SELL");
-        } else {
-            console.log("NONE");
-        }
+        var trade = new Trade(bars, strategy(short, long));
+        console.log(trade.operation());
     })
 }
 
@@ -64,7 +56,7 @@ if (require.main == module) {
         throw new Error("Unknown Symbol: " + symbol);
     }
     if (process.argv.indexOf("op") > 0) {
-        return operation(symbol);
+        return operation(symbol, short, long);
     }
     var start = "2001";
     var end = "2020";
