@@ -45,3 +45,10 @@ exports.fix = function(num) {
         return num;
     }
 }
+
+exports.updateLog = function() {
+    var flag = "\33[K\r";
+    var content = _.join(arguments, " ");
+    content += flag;
+    process.stdout.write(content);
+}

@@ -113,8 +113,8 @@ public:
 			order_save();
 		}else if(key == 76){//load
 			order_load();
-		}else if(key == 79){//another
-			order_load_another();
+		}else if(key == 79){//load2
+			order_load_2();
 		}else if(key == 82){//clear
 			clear();
 		}else if(key == 65){//analyze

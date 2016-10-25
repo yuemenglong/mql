@@ -285,6 +285,14 @@ function getBars(symbol) {
         item.diff = item.ema[12] - item.ema[26];
     }
 
+    function parseToFloat(bars) {
+        bars.map(function(bar) {
+            ["open", "high", "low", "close", "volumn"].map(function(name) {
+                bar[name] = _.round(parseFloat(bar[name]), 2);
+            })
+        })
+    }
+
     function attachIndicator(bars) {
         attachEma(bars);
         attachMa(bars);

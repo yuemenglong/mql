@@ -4,7 +4,7 @@
 #include "../view/line.mqh"
 #include "context.mqh"
 
-#define MAX_POS 1024
+#define MAX_POS 4096
 #define PREFIX "ORDER_LINE_"
 
 const int INIT = 0;
@@ -28,13 +28,54 @@ public:
 	}
 };
 
+class OrderView
+{
+	int _clr;
+	string get_prefix(){
+		return PREFIX + str(_clr) + "_";
+	}
+public:
+	OrderView(int clr){
+		_clr = clr;
+	}
+	~OrderView(){
+		hide();
+	}
+	int show(order_t& orders[], int size){
+		for(int i = 0; i < size; i++){
+			order_t* order = &orders[i];
+		   string lineName = get_prefix() + str(order.ticket);
+			if(order.status == OPEN){
+				HLine line(lineName);
+				line.set_color(clrLime);
+				line.set_price(order.open);
+				line.show();
+			}else if(order.status == CLOSE){
+				Line line(lineName);
+				line.set_from(order.open_time, order.open);
+				line.set_to(order.close_time, order.close);
+				line.set_color(_clr);
+				line.set_width(2);
+				line.show();
+			}
+		}
+		return 0;
+	}
+	int hide(){
+		Static::delete_object_prefix(get_prefix());
+		return 0;
+	}
+};
+
 
 class Trade : public Context
 {
 	order_t _orders[MAX_POS];
 	int _order_pos;
+	OrderView view;
+	OrderView view2;
 public:
-	Trade(){
+	Trade() : view(clrRed), view2(clrBlue) {
 		_order_pos = 0;
 	}
 	int order_buy(double volumn = 1){
@@ -48,7 +89,9 @@ public:
 		_orders[ticket].open = Close[0];
 		_orders[ticket].volumn = volumn;
 		_orders[ticket].status = OPEN;
-		order_show(_orders[ticket]);
+		// order_show(_orders[ticket]);
+		view.hide();
+		view.show(_orders, _order_pos);
 
 		return ticket;
 	}
@@ -64,26 +107,10 @@ public:
 		_orders[ticket].close_time = Time[0];
 		_orders[ticket].close = close;
 		_orders[ticket].status = CLOSE;
-		order_show(_orders[ticket]);
+		// order_show(_orders[ticket]);
+		view.hide();
+		view.show(_orders, _order_pos);
 
-		return 0;
-	}
-	int order_show(order_t& order, int clr = clrRed){
-		string lineName = PREFIX + str(order.ticket);
-		ObjectDelete(lineName);
-		if(order.status == OPEN){
-			HLine line(lineName);
-			line.set_color(clrLime);
-			line.set_price(order.open);
-			line.show();
-		}else if(order.status == CLOSE){
-			Line line(lineName);
-			line.set_from(order.open_time, order.open);
-			line.set_to(order.close_time, order.close);
-			line.set_color(clr);
-			line.set_width(2);
-			line.show();
-		}
 		return 0;
 	}
 	int order_delete_last(){
@@ -98,7 +125,9 @@ public:
 	}
 	int order_clear(){
 		_order_pos = 0;
-		delete_object_prefix(PREFIX);
+		view.hide();
+		view2.hide();
+		// delete_object_prefix(PREFIX);
 		return 0;
 	}
 	int order_save(){
@@ -121,33 +150,42 @@ public:
 		return 0;
 	}
 private:
-	int order_load(string fileName, int clr = clrRed){
+	int order_load(string fileName, order_t& orders[], int& pos){
 		File* file = new File(fileName);
 		if(!file.valid()){
 			return -1;
 		}
+		pos = 0;
 		while(!file.reach_end()){
-			_orders[_order_pos].ticket = _order_pos;
-			_orders[_order_pos].open_time = file.read_time();
-			_orders[_order_pos].close_time = file.read_time();
-			_orders[_order_pos].open = file.read_double();
-			_orders[_order_pos].close = file.read_double();
-			_orders[_order_pos].volumn = file.read_integer();
-			_orders[_order_pos].status = file.read_integer();
-			order_show(_orders[_order_pos], clr);
-			_order_pos++;
+			orders[pos].ticket = pos;
+			orders[pos].open_time = file.read_time();
+			orders[pos].close_time = file.read_time();
+			orders[pos].open = file.read_double();
+			orders[pos].close = file.read_double();
+			orders[pos].volumn = file.read_integer();
+			orders[pos].status = file.read_integer();
+			// order_show(orders[pos], clr);
+			pos++;
 		}
 		file.close();
+
 		return 0;
 	}
 public:
 	int order_load(){
-		order_clear();
 		string fileName = Symbol() + ".trade.csv";
-		return order_load(fileName);
+		order_load(fileName, _orders, _order_pos);
+		view.hide();
+		view.show(_orders, _order_pos);
+		return 0;
 	}
-	int order_load_another(){
-		string fileName = Symbol() + ".trade.another.csv";
-		return order_load(fileName, clrBlue);
+	int order_load_2(){
+		string fileName = Symbol() + ".trade.2.csv";
+		order_t orders[MAX_POS];
+		int pos;
+		order_load(fileName, orders, pos);
+		view2.hide();
+		view2.show(orders, pos);
+		return 0;
 	}
 };

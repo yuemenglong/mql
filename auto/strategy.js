@@ -66,7 +66,6 @@ if (require.main == module) {
     }
     return getBars(symbol).then(function(bars) {
         bars = bars.filter(function(b) {
-            // return b.time > "2016.07.14";
             return start <= b.time && b.time <= end;
         })
         var trade = new Trade(bars, strategy(short, long, flag));

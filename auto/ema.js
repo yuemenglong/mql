@@ -13,6 +13,7 @@ var getDB = require("./sys/data-source").getDB;
 var Trade = require("./sys/trade");
 var strategy = require("./strategy");
 var Promise = require("bluebird");
+var kit = require("./sys/kit");
 
 var SHORT_MIN = 1;
 var SHORT_MAX = 30;
@@ -29,74 +30,6 @@ function log(data) {
     console.log(data);
     return data;
 }
-
-function Kit() {
-    this.log = function(data) {
-        console.log(data);
-        return data;
-    }
-    this.writeFileSync = function(path, arr) {
-        var content = arr.map(function(line) {
-            return _.values(line).join(",");
-        }).join("\n");
-        fs.writeFileSync(path, content);
-    }
-    this.multiReduce = function(field) {
-        return function(acc, item) {
-            return acc * item[field];
-        }
-    }
-    this.ratioReduce = function(upper, lower) {
-        return function(acc, item) {
-            return acc * item[upper] / item[lower];
-        }
-    }
-    this.getSymbol = function() {
-        var symbol = process.argv.slice(-1)[0];
-        if (!/\d{6}/.test(symbol)) {
-            throw new Error("Invalid Symbol: " + symbol);
-        }
-        return symbol;
-    }
-    this.test = function(s, e) {
-        if (!e) {
-            var pattern = `\\d{${s}}`;
-        } else {
-            var pattern = `\\d{${s},${e}}`;
-        }
-        var re = new RegExp(pattern);
-        return function(s) {
-            if (!re.test(s)) {
-                throw new Error(s + " Not Match " + pattern);
-            }
-        }
-    }
-    this.getEmaPairs = function() {
-        var pairs = _.range(SHORT_MIN, SHORT_MAX).map(function(short) {
-            return _.range(LONG_MIN, LONG_MAX).map(function(long) {
-                if (short * 2 > long) {
-                    return;
-                }
-                if (short * 60 < long) {
-                    return;
-                }
-                return { short, long };
-            }).filter(o => !!o);
-        })
-        return _.flatten(pairs);
-    }
-    this.getArgs = function(flag, idx, dft) {
-        idx = idx || 1;
-        dft = dft || null;
-        if (process.argv.indexOf(flag) < 0) {
-            return dft;
-        } else {
-            return process.argv[process.argv.indexOf(flag) + idx];
-        }
-    }
-}
-
-var kit = new Kit();
 
 function runEmaStrategy(symbol, short, long) {
     return getBars(symbol).then(function(bars) {
