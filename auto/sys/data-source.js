@@ -20,6 +20,7 @@ var EXT = ".day.csv";
 var URL = "mongodb://localhost:27017/stock";
 var BAR_DAY = "bar.day";
 var CACHE_DAY = "cache.day";
+var SINA_LAST = "sina.last";
 
 function log(data) {
     console.log(data);
@@ -431,7 +432,7 @@ function appendFromSina(symbol) {
 
     function getLastTime() {
         return getDB(function(db) {
-            return db.collection("day.last").find({ symbol: symbol }).toArray().then(function(res) {
+            return db.collection(SINA_LAST).find({ symbol: symbol }).toArray().then(function(res) {
                 if (res && res.length) {
                     return res[0].time;
                 }
@@ -457,7 +458,7 @@ function appendFromSina(symbol) {
         if (!res.length) return;
         return getDB(function(db) {
             return db.collection(BAR_DAY).insertMany(res).then(function() {
-                return db.collection("day.last").update({
+                return db.collection(SINA_LAST).update({
                     symbol: symbol
                 }, {
                     $set: {
@@ -509,9 +510,6 @@ exports.getDB = getDB;
 exports.getSymbols = getSymbols;
 
 if (require.main == module) {
-    getBars(getSymbol()).then(function(bars) {
-        console.log(bars.length);
-    })
     if (process.argv.indexOf("import") >= 0) {
         Import();
     }

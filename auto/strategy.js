@@ -8,24 +8,27 @@ var _ = require("lodash");
 var fs = require("yy-fs");
 var P = require("path");
 
+var INDICATOR = "ma";
+
 //短期均线上穿长期均线
 function strategy(short, long, flag) {
     return function(bar, pre) {
         var bar = this.bar(0);
         var pre = this.bar(1);
         if (flag != null && flag != 0) {
-            var trend = bar.close > bar.ema[flag];
+            var trend = bar.close > bar[INDICATOR][flag];
         } else {
             var trend = true;
         }
-        if (pre.ema[short] < pre.ema[long] &&
-            bar.ema[short] > bar.ema[long] &&
+        if (pre[INDICATOR][short] < pre[INDICATOR][long] &&
+            bar[INDICATOR][short] > bar[INDICATOR][long] &&
+            // bar[INDICATOR][long] > pre[INDICATOR][long] &&
             trend &&
             !this.opened()
         ) {
             this.buy();
         }
-        if (bar.ema[short] < bar.ema[long] && this.opened()) {
+        if (bar[INDICATOR][short] < bar[INDICATOR][long] && this.opened()) {
             this.sell();
         }
     }
@@ -35,9 +38,9 @@ function operation(symbol) {
     return getBars(symbol).then(function(bars) {
         var pre = bars.slice(-2)[0];
         var bar = bars.slice(-2)[1];
-        if (pre.ema[short] <= pre.ema[long] && bar.ema[short] > bar.ema[long]) {
+        if (pre[INDICATOR][short] <= pre[INDICATOR][long] && bar[INDICATOR][short] > bar[INDICATOR][long]) {
             console.log("BUY");
-        } else if (pre.ema[short] >= pre.ema[long] && bar.ema[short] < bar.ema[long]) {
+        } else if (pre[INDICATOR][short] >= pre[INDICATOR][long] && bar[INDICATOR][short] < bar[INDICATOR][long]) {
             console.log("SELL");
         } else {
             console.log("NONE");
@@ -76,29 +79,9 @@ if (require.main == module) {
         })
         var trade = new Trade(bars, strategy(short, long, flag));
         var output = trade.exec();
-        var opened = false;
-        var next = 0;
-        bars.reduce(function(acc, bar) {
-            var order = output[next];
-            if (!order || !opened) {
-                bar.res = acc;
-                var ret = acc;
-            } else if (opened) {
-                bar.res = _.floor(acc * bar.close / order.open);
-                var ret = acc;
-            } else {
-                var ret = acc;
-            }
-            if (!opened && bar.time >= order.openTime) {
-                opened = true;
-            } else if (opened && bar.time >= order.closeTime) {
-                opened = false;
-                var ret = bar.res;
-            }
-            return ret;
-        }, 10000);
         trade.save(symbol);
-        print(stat(output));
+        var content = trade.stat().map(o => _.values(o).join("\t")).join("\n");
+        console.log(content);
         var content = trade.detail().map(bar => [bar.time, bar.close, bar.res].join(",")).join("\n");
         fs.writeFileSync(P.resolve(__dirname, "result/detail.csv"), content);
     });

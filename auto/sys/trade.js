@@ -2,6 +2,7 @@
 var fs = require("yy-fs");
 var resolve = require("./common").resolve;
 var _ = require("lodash");
+var fix = require("./common").fix;
 
 var INIT = 0;
 var OPEN = 1;
@@ -101,6 +102,21 @@ function Trade(bars, exec, opt) {
             return ret;
         }, 10000);
         return details;
+    }
+    this.stat = function() {
+        var acc = 10000;
+        var result = orders.map(function(order) {
+            var openTime = order.openTime.split(" ")[0];
+            var closeTime = order.closeTime.split(" ")[0];
+            var open = fix(order.open);
+            var close = fix(order.close);
+            var start = acc;
+            acc = Math.floor(acc * close / open);
+            var end = acc;
+            var profit = fix((end - start) / start * 100);
+            return { openTime, closeTime, open, close, start, end, profit };
+        }).filter(o => !!o);
+        return result;
     }
 
     function execute(that) {

@@ -306,7 +306,10 @@ function result() {
             return ret;
         });
     }).then(function(res) {
-        res = _(res).sortBy("res").slice(-100).value();
+        res = _.sortBy(res, "res");
+        var content = res.map(o => JSON.stringify(o)).join("\n");
+        fs.writeFileSync(P.resolve(__dirname, "result/res.csv"), content);
+        res = _(res).slice(-100).value();
         console.log(res);
     })
 }
