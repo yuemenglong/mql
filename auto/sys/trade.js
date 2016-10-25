@@ -22,9 +22,13 @@ function Trade(bars, cb, opt) {
         if (idx >= bars.length) idx = bars.length - 1;
         return bars[idx];
     }
+    this.inNextBar = function(price) {
+        var next = this.bar(-1);
+        return next.low <= price && price <= next.high;
+    }
     this.buy = function(price, volumn) {
         var bar = this.bar(0);
-        if (this.opened() || (!price && !bar.volumn)) {
+        if (this.opened()) {
             return;
         }
         price = price || bar.close;
@@ -39,7 +43,7 @@ function Trade(bars, cb, opt) {
     }
     this.sell = function(price, volumn) {
         var bar = this.bar(0);
-        if (!this.opened() || (!price && !bar.volumn)) {
+        if (!this.opened()) {
             return;
         }
         price = price || bar.close;
@@ -82,8 +86,14 @@ function Trade(bars, cb, opt) {
         var next = 0;
         var opened = false;
         bars.reduce(function(acc, bar) {
-            bar = _.clone(bar);
-            details.push(bar);
+            bar = {
+                time: bar.time,
+                open: bar.open,
+                high: bar.high,
+                low: bar.low,
+                close: bar.close,
+                volumn: bar.volumn,
+            }
             var order = orders[next];
             if (!order || !opened) {
                 bar.res = acc;
@@ -99,8 +109,10 @@ function Trade(bars, cb, opt) {
             } else if (opened && bar.time >= order.closeTime) {
                 opened = false;
                 next++;
+                bar.res = _.floor(acc * order.close / order.open);
                 var ret = bar.res;
             }
+            details.push(bar);
             return ret;
         }, 10000);
         return details;

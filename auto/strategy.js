@@ -7,6 +7,7 @@ var Trade = require("./sys/trade");
 var _ = require("lodash");
 var fs = require("yy-fs");
 var P = require("path");
+var kit = require("./sys/kit");
 
 var INDICATOR = "ma";
 
@@ -20,7 +21,6 @@ function strategy(short, long, flag) {
         }
         if (pre[INDICATOR][short] < pre[INDICATOR][long] &&
             bar[INDICATOR][short] > bar[INDICATOR][long] &&
-            // bar[INDICATOR][long] > pre[INDICATOR][long] &&
             trend
         ) {
             return this.buy();
@@ -71,9 +71,8 @@ if (require.main == module) {
         var trade = new Trade(bars, strategy(short, long, flag));
         var output = trade.exec();
         trade.save(symbol);
-        var content = trade.stat().map(o => _.values(o).join("\t")).join("\n");
-        console.log(content);
-        var content = trade.detail().map(bar => [bar.time, bar.close, bar.res].join(",")).join("\n");
-        fs.writeFileSync(P.resolve(__dirname, "result/detail.csv"), content);
+        kit.logArray(trade.stat());
+        console.log(trade.detail().slice(-1)[0].res);
+        kit.writeArray(trade.detail(), "result/detail.csv");
     });
 }
