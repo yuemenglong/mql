@@ -26,29 +26,31 @@ function Trade(bars, cb, opt) {
         var next = this.bar(-1);
         return next.low <= price && price <= next.high;
     }
-    this.buy = function(price, volumn) {
+    this.buy = function(price, opt) {
         var bar = this.bar(0);
         if (this.opened()) {
             return;
         }
         price = price || bar.close;
-        volumn = volumn || 1;
+        var volumn = _.get(opt, "volumn", 1);
+        var openTime = _.get(opt, "time", bar.time);
         order = {
-            openTime: bar.time,
+            openTime: openTime,
             open: price,
             volumn: volumn,
             status: OPEN,
         }
         return "BUY";
     }
-    this.sell = function(price, volumn) {
+    this.sell = function(price, opt) {
         var bar = this.bar(0);
         if (!this.opened()) {
             return;
         }
         price = price || bar.close;
-        volumn = volumn || 1;
-        order.closeTime = bar.time;
+        var volumn = _.get(opt, "volumn", 1);
+        var closeTime = _.get(opt, "time", bar.time);
+        order.closeTime = closeTime;
         order.close = price;
         order.status = CLOSE;
         orders.push(order);
@@ -144,7 +146,7 @@ function Trade(bars, cb, opt) {
         if (that.opened() &&
             (bar.close >= pre.close * 1.2 || bar.close <= pre.close * 0.8)
         ) {
-            return that.sell(pre.close);
+            return that.sell(pre.close, { time: pre.time });
         }
         return cb(bar, pre);
     }

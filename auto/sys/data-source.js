@@ -261,6 +261,9 @@ function getBars(symbol) {
     }
 
     function attachMacd(bars) {
+        function diff(item) {
+            item.diff = item.ema[12] - item.ema[26];
+        }
         bars.map(diff);
         bars.reduce(ema("diff", 9, "dea"), 0);
     }
@@ -281,9 +284,28 @@ function getBars(symbol) {
         })
     }
 
-    function diff(item) {
-        item.diff = item.ema[12] - item.ema[26];
+    function attachBoll(bars) {
+        bars.map(function(item, i) {
+            item.boll = item.boll || {};
+            if (i < 20) {
+                var sum = _.range(0, i + 1).reduce(function(acc, idx) {
+                    var diff = bars[idx].close - item.ma[20];
+                    return acc + diff * diff;
+                }, 0)
+                var avg = Math.sqrt(sum / (i + 1));
+            } else {
+                var sum = _.range(i - 20 + 1, i + 1).reduce(function(acc, idx) {
+                    var diff = bars[idx].close - item.ma[20];
+                    return acc + diff * diff;
+                }, 0)
+                var avg = Math.sqrt(sum / 20);
+            }
+            item.boll.up = _.floor(item.ma[20] + avg * 2, 2);
+            item.boll.mid = item.ma[20];
+            item.boll.down = _.floor(item.ma[20] - avg * 2, 2);
+        });
     }
+
 
     function parseToFloat(bars) {
         bars.map(function(bar) {
@@ -296,6 +318,8 @@ function getBars(symbol) {
     function attachIndicator(bars) {
         attachEma(bars);
         attachMa(bars);
+        attachMacd(bars);
+        attachBoll(bars);
         return bars;
     }
     if (CACHE[symbol]) {
@@ -305,6 +329,7 @@ function getBars(symbol) {
         return db.collection(CACHE_DAY).find({ symbol: symbol }).toArray().then(function(res) {
             if (res && res.length) return res;
             return db.collection(BAR_DAY).find({ symbol: symbol }).toArray().then(function(bars) {
+                parseToFloat(bars);
                 attachIndicator(bars);
                 CACHE[symbol] = bars;
                 return db.collection(CACHE_DAY).insertMany(bars).then(function() {
