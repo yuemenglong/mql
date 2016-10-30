@@ -3,6 +3,7 @@ var execute = require("./sys/execute");
 var stat = require("./sys/analyze").stat;
 var print = require("./sys/analyze").print;
 var getBars = require("./sys/data-source").getBars;
+var getWeekBars = require("./sys/data-source").getWeekBars;
 var Trade = require("./sys/trade");
 var _ = require("lodash");
 var fs = require("yy-fs");
@@ -13,28 +14,20 @@ var INDICATOR = "ma";
 
 //短期均线上穿长期均线
 function strategy(short, long, flag) {
-    var canBuy = true;
     return function(bar, pre) {
-        // if (flag != null && flag != 0) {
-        //     var trend = bar.close > bar[INDICATOR][flag];
-        // } else {
-        //     var trend = true;
-        // }
-        var next = this.bar(-1);
-        if (pre[INDICATOR][short] < pre[INDICATOR][long] &&
-            bar[INDICATOR][short] > bar[INDICATOR][long]
+        if (
+            // bar[INDICATOR][short] > bar[INDICATOR][long]
+            bar.close > pre.close
+            // bar.high > pre.high && bar.low > pre.low
         ) {
-            // if (canBuy && this.inNextBar(bar.close)) {
-            return this.buy(next.open);
-            // } else {
-            //     canBuy = false;
-            // }
+            return this.buy();
         }
-        if (pre[INDICATOR][short] > pre[INDICATOR][long] &&
-            bar[INDICATOR][short] < bar[INDICATOR][long]
+        if (
+            // bar[INDICATOR][short] < bar[INDICATOR][long]
+            bar.close < pre.close
+            // bar.high < pre.high && bar.low < pre.low
         ) {
-            canBuy = true;
-            return this.sell(next.open);
+            return this.sell();
         }
     }
 }
@@ -64,6 +57,9 @@ if (require.main == module) {
             var output = trade.exec();
             trade.save(symbol);
             kit.logArray(trade.stat());
+            var bar = bars.slice(-1)[0];
+            console.log("Last:", bar.time, bar.close);
+            console.log(trade.stat().length);
             kit.writeArray(trade.detail(), "result/detail.csv");
         });
     } else {
@@ -81,7 +77,8 @@ if (require.main == module) {
                 var trade = new Trade(bars, strategy(pair.short, pair.long));
                 var output = trade.exec();
                 kit.updateLog(_.round(i / pairs.length * 100, 2), "%");
-                var res = output.reduce((acc, item) => _.floor(acc * item.close / item.open), 10000);
+                // var res = output.reduce((acc, item) => _.floor(acc * item.close / item.open), 10000);
+                var res = trade.stat().slice(-1)[0].end;
                 return _.merge({}, pair, { res });
             })
             var result = _(result).sortBy("res").slice(-100).value();

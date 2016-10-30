@@ -307,6 +307,54 @@ function getBars(symbol) {
     }
 
 
+
+
+    function attachIndicator(bars) {
+        // attachEma(bars);
+        attachMa(bars);
+        // attachMacd(bars);
+        // attachBoll(bars);
+        return bars;
+    }
+    if (CACHE[symbol]) {
+        return Promise.resolve(CACHE[symbol]);
+    }
+    return getDB(function(db) {
+            // return db.collection(CACHE_DAY).find({ symbol: symbol }).toArray().then(function(res) {
+            // if (res && res.length) return res;
+            return getOrigBars(symbol).then(function(bars) {
+                attachIndicator(bars);
+                CACHE[symbol] = bars;
+                // return db.collection(CACHE_DAY).insertMany(bars).then(function() {
+                return bars;
+                // })
+            });
+        })
+        // })
+}
+
+function getWeekBars(symbol) {
+    return getOrigBars(symbol).then(function(bars) {
+        return _(bars).groupBy(function(bar) {
+            var date = new Date(bar.time.replace(/\./, "-"));
+            var day = date.getDay() || 7;
+            var monday = new Date(date.valueOf() - (day - 1) * 86400 * 1000);
+            return moment(monday).format("YYYY.MM.DD");
+        }).transform(function(res, value, key) {
+            var all = _(value).map(function(bar) {
+                return [bar.open, bar.high, bar.low, bar.close];
+            }).flatten();
+            var time = key;
+            var open = value[0].open;
+            var close = value.slice(-1)[0].close;
+            var high = all.max();
+            var low = all.min();
+            res.push({ time, open, high, low, close });
+        }, []).value();
+    })
+}
+
+function getOrigBars(symbol) {
     function parseToFloat(bars) {
         bars.map(function(bar) {
             ["open", "high", "low", "close", "volumn"].map(function(name) {
@@ -314,29 +362,11 @@ function getBars(symbol) {
             })
         })
     }
-
-    function attachIndicator(bars) {
-        attachEma(bars);
-        attachMa(bars);
-        attachMacd(bars);
-        attachBoll(bars);
-        return bars;
-    }
-    if (CACHE[symbol]) {
-        return Promise.resolve(CACHE[symbol]);
-    }
     return getDB(function(db) {
-        return db.collection(CACHE_DAY).find({ symbol: symbol }).toArray().then(function(res) {
-            if (res && res.length) return res;
-            return db.collection(BAR_DAY).find({ symbol: symbol }).toArray().then(function(bars) {
-                parseToFloat(bars);
-                attachIndicator(bars);
-                CACHE[symbol] = bars;
-                return db.collection(CACHE_DAY).insertMany(bars).then(function() {
-                    return bars;
-                })
-            });
-        })
+        return db.collection(BAR_DAY).find({ symbol: symbol }).toArray().then(function(bars) {
+            parseToFloat(bars);
+            return bars;
+        });
     })
 }
 
@@ -540,6 +570,8 @@ function importSymbol() {
 }
 
 exports.getBars = getBars;
+exports.getOrigBars = getOrigBars;
+exports.getWeekBars = getWeekBars;
 exports.getDB = getDB;
 exports.getSymbols = getSymbols;
 

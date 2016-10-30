@@ -119,8 +119,8 @@ public:
 			return 0;
 		}
 		_order_pos--;
-		string lineName = PREFIX + _order_pos;
-		ObjectDelete(lineName);
+		view.hide();
+		view.show(_orders, _order_pos);
 		return 0;
 	}
 	int order_clear(){

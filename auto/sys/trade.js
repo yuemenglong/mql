@@ -4,6 +4,8 @@ var resolve = require("./common").resolve;
 var _ = require("lodash");
 var fix = require("./common").fix;
 
+var RATIO = 0.998;
+
 var INIT = 0;
 var OPEN = 1;
 var CLOSE = 2;
@@ -66,8 +68,13 @@ function Trade(bars, cb, opt) {
             pos = i;
             execute(this);
         }.bind(this));
+        if (this.opened()) {
+            var bar = bars.slice(-1)[0];
+            order.closeTime = "----------";
+            order.close = bar.close;
+            orders.push(order);
+        }
         opt && opt.deinit && opt.deinit.call(this);
-        this.opened() && this.sell();
         return orders;
     }
     this.save = function(symbol) {
@@ -111,7 +118,7 @@ function Trade(bars, cb, opt) {
             } else if (opened && bar.time >= order.closeTime) {
                 opened = false;
                 next++;
-                bar.res = _.floor(acc * order.close / order.open);
+                bar.res = _.floor(acc * order.close / order.open * RATIO);
                 var ret = bar.res;
             }
             details.push(bar);
@@ -127,7 +134,7 @@ function Trade(bars, cb, opt) {
             var open = fix(order.open);
             var close = fix(order.close);
             var start = acc;
-            acc = Math.floor(acc * close / open);
+            acc = Math.floor(acc * close / open * RATIO);
             var end = acc;
             var profit = fix((end - start) / start * 100);
             return { openTime, closeTime, open, close, start, end, profit };
@@ -144,7 +151,7 @@ function Trade(bars, cb, opt) {
         var bar = that.bar(0);
         var pre = that.bar(1);
         if (that.opened() &&
-            (bar.close >= pre.close * 1.2 || bar.close <= pre.close * 0.8)
+            (bar.close <= pre.close * 0.6)
         ) {
             return that.sell(pre.close, { time: pre.time });
         }
