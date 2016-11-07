@@ -24,6 +24,16 @@ function Trade(bars, cb, opt) {
         if (idx >= bars.length) idx = bars.length - 1;
         return bars[idx];
     }
+    this.slice = function(from, to) {
+        var len = to - from;
+        var idx = pos - to;
+        if (idx < 0) idx = 0;
+        if (idx >= bars.length) idx = bars.length - 1;
+        return bars.slice(idx, length).reverse();
+    }
+    this.pos = function() {
+        return pos;
+    }
     this.inNextBar = function(price) {
         var next = this.bar(-1);
         return next.low <= price && price <= next.high;

@@ -5,7 +5,7 @@
 #include "context.mqh"
 
 #define MAX_POS 4096
-#define PREFIX "ORDER_LINE_"
+string ORDER_LINE_PREFIX = "ORDER_LINE_";
 
 const int INIT = 0;
 const int OPEN = 1;
@@ -32,7 +32,7 @@ class OrderView
 {
 	int _clr;
 	string get_prefix(){
-		return PREFIX + str(_clr) + "_";
+		return ORDER_LINE_PREFIX + str(_clr) + "_";
 	}
 public:
 	OrderView(int clr){

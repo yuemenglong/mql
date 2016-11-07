@@ -7,9 +7,9 @@ string str(int val)
 {
 	return IntegerToString(val);
 }
-string str(double val)
+string str(double val, int digit = 8)
 {
-	return DoubleToString(val);
+	return DoubleToString(val, digit);
 }
 string str(string val)
 {

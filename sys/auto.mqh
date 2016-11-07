@@ -17,7 +17,7 @@ class Auto : public Trade
 	Label* _label2;
 	bool _auto;
 public:
-	virtual void init(){
+	Auto(){
 		_order = -1;
 		_auto = false;
 
@@ -28,9 +28,9 @@ public:
 		_label2 = new Label("AUTO_LABEL_2");
 		_label2.set_corner(0, 1);
 		_label2.set_row(2);
-		show_label();	
-	}
-	virtual void deinit(){
+		show_label();
+	}	
+	~Auto(){
 		order_clear();
 		_label1.hide();
 		_label2.hide();
@@ -100,7 +100,6 @@ public:
 		exec();
 	}
 	virtual void on_key_down(int key){
-		log(str(key));
 		if(key == 66){//buy
 			auto_buy();
 		}else if(key == 67){//close
@@ -108,7 +107,7 @@ public:
 		}else if(key == 68){//delete
 			delete_last();
 		}else if(key == 77){//switch mode
-			switch_mode();
+			// switch_mode();
 		}else if(key == 83){//save
 			order_save();
 		}else if(key == 76){//load

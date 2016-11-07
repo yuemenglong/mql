@@ -49,6 +49,7 @@ public:
 	void _on_mouse_move(int x, int y);
 
 	virtual void on_click(int x, int y);
+	virtual void on_right_click(int x, int y);
 	virtual void on_double_click(int x, int y);
 	virtual void on_key_down(int key);
 	virtual void on_mouse_move(int x, int y);
@@ -201,6 +202,10 @@ double Context::get_cursor_price(){
 }
 
 void Context::on_click(int x, int y){
+	return;
+}
+
+void Context::on_right_click(int x, int y){
 	return;
 }
 
